@@ -1,11 +1,9 @@
-# PR Diff Analyzer 🤖
+# PR Genius 🤖
 
 <div align="center">
 
-![PR Diff Analyzer](https://raw.githubusercontent.com/yourusername/pull-requstooor/main/assets/logo.png)
-
-[![Build Status](https://github.com/yourusername/pull-requstooor/workflows/Build%20and%20Publish%20Docker%20Image/badge.svg)](https://github.com/yourusername/pull-requstooor/actions)
-[![Version](https://img.shields.io/github/v/release/yourusername/pull-requstooor?include_prereleases)](https://github.com/yourusername/pull-requstooor/releases)
+[![Build Status](https://github.com/sudo-whodo/pr-genius/actions/workflows/build.yml/badge.svg)](https://github.com/sudo-whodo/pr-genius/actions)
+[![Version](https://img.shields.io/github/v/release/sudo-whodo/pr-genius?include_prereleases)](https://github.com/sudo-whodo/pr-genius/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 
@@ -17,21 +15,6 @@ AI-powered pull request analysis tool that provides comprehensive code reviews, 
 [Contributing](#contributing)
 
 </div>
-
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [GitHub Action Usage](#-github-action-usage)
-- [Manual Installation](#-manual-installation)
-- [Configuration](#-configuration)
-- [Usage Examples](#-usage-examples)
-- [Output Examples](#-output-examples)
-- [Error Handling](#-error-handling)
-- [Best Practices](#-best-practices)
-- [Contributing](#-contributing)
-- [Requirements](#-requirements)
-- [Versioning](#-versioning)
 
 ## ✨ Features
 
@@ -49,30 +32,7 @@ AI-powered pull request analysis tool that provides comprehensive code reviews, 
 
 ## 🚀 Quick Start
 
-```yaml
-name: PR Analysis
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - name: PR Diff Analysis
-        uses: yourusername/pr-diff-analyzer@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-          repository: ${{ github.repository }}
-          # pull_request_number is automatically available in pull request events
-          # Optional: specify a different model
-          # model: "anthropic/claude-2"
-```
-
-## 🔧 GitHub Action Usage
-
-Add this to your workflow file (e.g., `.github/workflows/pr-analysis.yml`):
+Add this workflow to your repository at `.github/workflows/pr-analysis.yml`:
 
 ```yaml
 name: PR Analysis
@@ -85,92 +45,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: PR Diff Analysis
-        uses: yourusername/pr-diff-analyzer@v1
+        uses: sudo-whodo/pr-genius@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-          repository: ${{ github.repository }}
-          # pull_request_number is automatically available in pull request events
-          # but can be specified manually if needed:
-          # pull_request_number: 123
-          # Optional: specify a different model (default: anthropic/claude-3.5-sonnet)
-          # model: "anthropic/claude-2"
 ```
 
-### Action Inputs
+That's it! The action will now analyze your pull requests and provide AI-powered feedback.
 
-| Input                 | Description                        | Required | Default                          |
-| --------------------- | ---------------------------------- | -------- | -------------------------------- |
-| `github_token`        | GitHub token for API access        | ✅       | -                                |
-| `openrouter_key`      | OpenRouter API key for AI analysis | ✅       | -                                |
-| `repository`          | Repository name (owner/repo)       | ❌       | github.repository                |
-| `pull_request_number` | PR number to analyze               | ❌       | github.event.pull_request.number |
-| `model`               | OpenRouter model to use            | ❌       | anthropic/claude-3.5-sonnet      |
+## 📚 Documentation
 
-### Required Secrets
+- [Usage Guide](docs/usage-guide.md) - How to use this action in your repositories
+- [Release Workflow](docs/release-workflow.md) - Understanding our release process
+- [API Reference](docs/usage-guide.md#configuration-options) - Available configuration options
+
+## 🔧 Required Secrets
 
 1. `GITHUB_TOKEN`: Automatically provided by GitHub Actions
 2. `OPENROUTER_API_KEY`: Your OpenRouter API key
-3. `PAT_TOKEN`: Personal Access Token with `pull-requests` and `contents` permissions (required for releases and Dependabot PRs)
-   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-   - Generate new token with:
-     - `pull-requests` (write permission)
-     - `contents` (write permission)
-   - Add the token to your repository's secrets as `PAT_TOKEN`
+   - Sign up at [OpenRouter](https://openrouter.ai/)
+   - Create an API key
+   - Add it to your repository secrets
 
-## 💻 Manual Installation
+## 📊 Example Output
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/pull-requstooor.git
-cd pull-requstooor
-```
-
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## ⚙️ Configuration
-
-1. Create a `.env` file:
-
-```env
-GITHUB_TOKEN=your_github_personal_access_token
-OPENAI_API_KEY=your_openai_api_key
-```
-
-2. Set up GitHub Token:
-
-   - Go to GitHub Settings > Developer settings > Personal access tokens
-   - Generate new token with:
-     - `repo` (Full control of private repositories)
-     - `pull_requests` (Access to pull requests)
-
-3. Set up OpenAI API Key:
-   - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
-   - Create a new key
-   - Add to `.env` file
-
-## 📝 Usage Examples
-
-Analyze a pull request with default model (Claude 3.5 Sonnet):
-
-```bash
-python pr_diff_analyzer.py --repo octocat/Hello-World --pr 123
-```
-
-Analyze with a different model:
-
-```bash
-python pr_diff_analyzer.py --repo octocat/Hello-World --pr 123 --model "anthropic/claude-2"
-```
-
-## 📊 Output Examples
-
-The analyzer posts a PR comment with:
+The action will add a comment to your PR with:
 
 <details>
 <summary>Click to see example output</summary>
@@ -186,93 +85,37 @@ The analyzer posts a PR comment with:
 
 ### 🧠 AI Code Review
 
-This PR introduces significant changes to the authentication system:
-
-- Impact: Moderate, affects user login flow
-- Risks: Need to ensure backward compatibility
-- Suggestions: Consider adding rate limiting
-- Quality: Good separation of concerns
+[AI-generated code review comments]
 
 ### 📚 Documentation Updates Needed
 
-1. Update authentication API docs
-2. Add examples for new login flow
-3. Update configuration guide
+[Documentation suggestions]
 
 ### 🔍 Notable Changes
 
-- Major changes in src/auth.py: +100/-30 lines
-- New file: tests/test_auth.py
+[List of significant changes]
 ```
 
 </details>
 
 ## ⚠️ Error Handling
 
-The script includes comprehensive error handling for:
+The action includes comprehensive error handling for:
 
 - GitHub API errors
-- OpenAI API errors
-- File access issues
-- Authentication problems
+- OpenRouter API errors
+- Rate limiting
+- Authentication issues
 
-Check console output for detailed error messages.
+Check workflow logs for detailed error messages.
 
 ## 🎯 Best Practices
 
-1. 🔒 Keep API keys secure and never commit them
-2. 🔄 Run analyzer on significant PRs
+1. 🔒 Keep API keys secure in repository secrets
+2. 🔄 Use on significant PRs for best value
 3. 👀 Review AI suggestions before implementing
 4. 📚 Keep documentation updated
-5. 🧪 Add tests for new features
-6. 🤖 Consider using different models for different types of analysis
-
-## 📈 Versioning
-
-This project uses semantic versioning through conventional commits. To trigger a new release:
-
-### Minor Version (New Features)
-
-```
-feat: add new feature
-```
-
-Example: `feat: add support for custom AI prompts`
-
-### Major Version (Breaking Changes)
-
-```
-feat!: breaking change
-```
-
-or
-
-```
-feat: new feature
-
-BREAKING CHANGE: description of breaking changes
-```
-
-Example:
-
-```
-feat!: change API response format
-```
-
-### Performance Improvements
-
-```
-perf: improve performance
-```
-
-Example: `perf: optimize PR analysis speed`
-
-The release workflow will:
-
-1. Detect these commits
-2. Create a release PR with version bump
-3. Update the changelog
-4. Create a GitHub release when merged
+5. 🤖 Consider different models for different needs
 
 ## 🤝 Contributing
 
@@ -280,7 +123,9 @@ We welcome contributions! Here's how you can help:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes using conventional commits
+3. Commit your changes using conventional commits:
+   - `feat: add new feature`
+   - `fix: resolve issue`
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
@@ -290,8 +135,7 @@ Please read our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 - Python 3.8+
 - GitHub Personal Access Token
-- OpenAI API Key
-- Dependencies from requirements.txt
+- OpenRouter API Key
 
 ## 📄 License
 
