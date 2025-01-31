@@ -1,0 +1,28 @@
+name: Lint Commits
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  commitizen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install commitizen
+        run: |
+          python -m pip install --upgrade pip
+          pip install commitizen
+
+      - name: Check commit messages
+        run: |
+          cz check --rev-range ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
