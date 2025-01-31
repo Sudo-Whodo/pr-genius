@@ -17,6 +17,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      build_success: ${{ steps.set_output.outputs.success }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +43,10 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
+
+      - name: Set build output
+        id: set_output
+        run: echo "success=true" >> $GITHUB_OUTPUT
 
   release:
     needs: build
@@ -139,6 +145,8 @@ jobs:
       github.ref == 'refs/heads/main' &&
       contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -178,11 +186,15 @@ jobs:
             ${CHANGES}"
 
   publish:
-    needs: [build, release, tag-and-release]
-    if: needs.release.outputs.new_version != ''
+    needs: [build, tag-and-release]
+    if: |
+      needs.build.outputs.build_success == 'true' &&
+      needs.tag-and-release.outputs.version != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: "v${{ needs.tag-and-release.outputs.version }}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -207,7 +219,7 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           tags: |
             ghcr.io/${{ steps.repo_name.outputs.repo }}:latest
-            ghcr.io/${{ steps.repo_name.outputs.repo }}:${{ needs.release.outputs.new_version }}
+            ghcr.io/${{ steps.repo_name.outputs.repo }}:${{ needs.tag-and-release.outputs.version }}
 
       - name: Move cache
         run: |
