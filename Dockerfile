@@ -9,9 +9,10 @@ RUN apt-get update && \
 # Set up working directory
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
+# Upgrade pip and install dependencies
 COPY pr-diff-bot/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the bot code
 COPY pr-diff-bot/ .
