@@ -30,27 +30,32 @@ jobs:
           python -m pip install --upgrade pip
           pip install python-semantic-release
 
+      - name: Get Version
+        id: version
+        run: |
+          echo "NEW_VERSION=$(semantic-release version --print)" >> $GITHUB_OUTPUT
+
       - name: Create Release Branch
         run: |
-          version=$(semantic-release version --print)
-          git checkout -b release-${version}
+          git checkout -b release-${{ steps.version.outputs.NEW_VERSION }}
 
-      - name: Python Semantic Release
+      - name: Update Version and Changelog
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          semantic-release version
+          semantic-release version --no-commit
+          git add .
+          git commit -m "chore(release): ${{ steps.version.outputs.NEW_VERSION }}"
 
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          version=$(semantic-release version --print)
-          git push origin release-${version}
+          git push origin release-${{ steps.version.outputs.NEW_VERSION }}
           gh pr create \
-            --title "chore(release): ${version}" \
+            --title "chore(release): ${{ steps.version.outputs.NEW_VERSION }}" \
             --body "Automated release PR" \
             --base main \
-            --head release-${version}
+            --head release-${{ steps.version.outputs.NEW_VERSION }}

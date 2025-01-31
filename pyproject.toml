@@ -1,0 +1,12 @@
+[tool.semantic_release]
+version_variable = "pr-diff-bot/__init__.py:__version__"
+branch = "main"
+upload_to_pypi = false
+upload_to_release = true
+build_command = false
+commit_message = "chore(release): {version}"
+commit_parser = "angular"
+changelog_components = "semantic_release.changelog.changelog"
+changelog_file = "CHANGELOG.md"
+# Disable pushing to main branch
+push_to_branch = false
