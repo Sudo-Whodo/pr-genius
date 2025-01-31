@@ -1,0 +1,14 @@
+name: PR Analysis
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR Diff Analysis
+        uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
