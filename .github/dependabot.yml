@@ -4,6 +4,9 @@ updates:
     directory: "/pr-diff-bot"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
     groups:
       python-packages:
         patterns:
@@ -11,16 +14,23 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Configure version updates
-    versioning-strategy: increase
-    # Configure PR settings
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
     open-pull-requests-limit: 10
     rebase-strategy: "auto"
+    target-branch: "main"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Los_Angeles"
     groups:
       github-actions:
         patterns:
@@ -28,6 +38,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Configure PR settings
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
     open-pull-requests-limit: 10
     rebase-strategy: "auto"
+    target-branch: "main"
