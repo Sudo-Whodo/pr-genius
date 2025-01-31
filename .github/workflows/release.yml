@@ -1,6 +1,8 @@
 name: Release
 on:
   workflow_dispatch:
+  pull_request:
+    types: [closed]
   push:
     branches:
       - main
@@ -12,6 +14,8 @@ permissions:
 
 jobs:
   build:
+    # Skip build on PR close if it wasn't merged
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       build_success: ${{ steps.set_output.outputs.success }}
@@ -46,6 +50,8 @@ jobs:
 
   check-release:
     needs: build
+    # Only run on push to main that's not a release commit
+    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.version.outputs.NEW_VERSION }}
@@ -60,7 +66,7 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "should_release=true" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "push" && ! "${{ github.event.head_commit.message }}" =~ ^chore\(release\): ]]; then
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
             echo "should_release=false" >> $GITHUB_OUTPUT
@@ -149,11 +155,12 @@ jobs:
             --head "release-${{ needs.check-release.outputs.new_version }}"
 
   tag-and-release:
-    needs: [build, check-release]
+    # Only run when a release PR is merged (not just closed)
     if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      contains(github.event.head_commit.message, 'chore(release):')
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release-')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
@@ -163,10 +170,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
 
-      - name: Get version from commit message
+      - name: Get version from branch name
         id: get_version
         run: |
-          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'chore\(release\): \K[0-9]+\.[0-9]+\.[0-9]+')
+          VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create and push tag
