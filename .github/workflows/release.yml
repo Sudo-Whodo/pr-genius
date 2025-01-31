@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**.md"
-      - ".github/**"
-      - "LICENSE"
 
 permissions:
   contents: write
@@ -48,36 +44,42 @@ jobs:
         id: set_output
         run: echo "success=true" >> $GITHUB_OUTPUT
 
-  release:
+  check-release:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, 'chore(release):') }}
     outputs:
       new_version: ${{ steps.version.outputs.NEW_VERSION }}
-
+      should_release: ${{ steps.check.outputs.should_release }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Check if release is needed
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" && ! "${{ github.event.head_commit.message }}" =~ ^chore\(release\): ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Python
+        if: steps.check.outputs.should_release == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.8"
-          cache: "pip"
 
       - name: Install dependencies
+        if: steps.check.outputs.should_release == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install python-semantic-release
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-
       - name: Get Next Version
+        if: steps.check.outputs.should_release == 'true'
         id: version
         run: |
           # Get current version from __init__.py
@@ -94,52 +96,60 @@ jobs:
             # Calculate patch version
             IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
             NEW_VERSION="$major.$minor.$((patch + 1))"
-          else
-            NEW_VERSION=$(semantic-release version --print)
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          elif echo "$COMMITS" | grep -q "^feat:"; then
+            # Calculate minor version
+            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+            NEW_VERSION="$major.$((minor + 1)).0"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           fi
 
-          if [ -z "$NEW_VERSION" ]; then
-            echo "No new version to release"
-            exit 0
-          fi
+  create-release-pr:
+    needs: [build, check-release]
+    if: needs.check-release.outputs.should_release == 'true' && needs.check-release.outputs.new_version != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
 
-          echo "New version: $NEW_VERSION"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
       - name: Create Release Branch and Update Version
-        if: steps.version.outputs.NEW_VERSION != ''
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}"
+          BRANCH="release-${{ needs.check-release.outputs.new_version }}"
           git checkout -b $BRANCH
 
           # Update version in __init__.py
-          sed -i "s/__version__ = .*/__version__ = \"${{ steps.version.outputs.NEW_VERSION }}\"/" pr-diff-bot/__init__.py
+          sed -i "s/__version__ = .*/__version__ = \"${{ needs.check-release.outputs.new_version }}\"/" pr-diff-bot/__init__.py
 
           git add .
-          git commit -m "chore(release): ${{ steps.version.outputs.NEW_VERSION }}"
-          echo "RELEASE_BRANCH=$BRANCH" >> $GITHUB_ENV
+          git commit -m "chore(release): ${{ needs.check-release.outputs.new_version }}"
+          git push -f origin $BRANCH
 
       - name: Create Pull Request
-        if: steps.version.outputs.NEW_VERSION != ''
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git push -f origin $RELEASE_BRANCH
           gh pr create \
-            --title "chore(release): ${{ steps.version.outputs.NEW_VERSION }}" \
+            --title "chore(release): ${{ needs.check-release.outputs.new_version }}" \
             --body "Automated release PR
 
-            This PR was automatically created by the release workflow to update the version to ${{ steps.version.outputs.NEW_VERSION }}.
+            This PR was automatically created by the release workflow to update the version to ${{ needs.check-release.outputs.new_version }}.
 
             Changes included in this release:
             $(git log --format='- %s' $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD)" \
             --base main \
-            --head $RELEASE_BRANCH
+            --head "release-${{ needs.check-release.outputs.new_version }}"
 
   tag-and-release:
-    needs: [build, release]
+    needs: [build, check-release]
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
