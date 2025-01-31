@@ -35,6 +35,7 @@ class PRDiffAnalyzer:
         self.openai_client = OpenAI(
             api_key=openrouter_key,
             base_url="https://openrouter.ai/api/v1",
+            http_client=None,  # Use default client
             default_headers={
                 "HTTP-Referer": "https://github.com/pr-diff-bot",
                 "X-Title": "PR Diff Analyzer"
