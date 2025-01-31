@@ -38,9 +38,15 @@ jobs:
       - name: Get Next Version
         id: version
         run: |
-          echo "NEW_VERSION=$(semantic-release version --print)" >> $GITHUB_OUTPUT
+          VERSION=$(semantic-release version --print)
+          if [ -z "$VERSION" ]; then
+            echo "No new version to release"
+            exit 0
+          fi
+          echo "NEW_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Release Branch and Update Version
+        if: steps.version.outputs.NEW_VERSION != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -48,6 +54,7 @@ jobs:
           semantic-release version
 
       - name: Create Pull Request
+        if: steps.version.outputs.NEW_VERSION != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
