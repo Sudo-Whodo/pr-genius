@@ -1,0 +1,47 @@
+name: Release
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, 'chore(release):') }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          git_committer_name: github-actions
+          git_committer_email: github-actions@github.com
+
+      - name: Create Release PR
+        if: steps.release.outputs.released == 'true'
+        run: |
+          # Create a new branch for the release
+          git checkout -b release-${{ steps.release.outputs.version }}
+
+          # Push the changes
+          git push origin release-${{ steps.release.outputs.version }}
+
+          # Create PR
+          gh pr create \
+            --title "chore(release): ${{ steps.release.outputs.version }}" \
+            --body "Automated release PR" \
+            --base main \
+            --head release-${{ steps.release.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
