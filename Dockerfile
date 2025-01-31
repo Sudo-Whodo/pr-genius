@@ -9,12 +9,12 @@ RUN apt-get update && \
 # Set up working directory
 WORKDIR /app
 
-# Copy requirements and install dependencies
+# Copy requirements first to leverage Docker cache
 COPY pr-diff-bot/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the bot code and entrypoint script
-COPY pr-diff-bot/pr_diff_analyzer.py .
+# Copy the bot code
+COPY pr-diff-bot/ .
 COPY entrypoint.sh .
 
 # Make entrypoint script executable
