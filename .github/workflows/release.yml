@@ -60,8 +60,13 @@ jobs:
       - name: Get Next Version
         id: version
         run: |
-          # Force version calculation ignoring existing tags
-          VERSION=$(semantic-release version --print --no-check-version)
+          # Initialize version if no tags exist
+          if ! git tag | grep -q "v"; then
+            VERSION="0.1.0"
+          else
+            VERSION=$(semantic-release version --print)
+          fi
+
           if [ -z "$VERSION" ]; then
             echo "No new version to release"
             exit 0
@@ -75,7 +80,10 @@ jobs:
         run: |
           BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
           git checkout -b $BRANCH
-          semantic-release version --no-commit --no-check-version
+
+          # Update version in __init__.py
+          sed -i "s/__version__ = .*/__version__ = \"${{ steps.version.outputs.NEW_VERSION }}\"/" pr-diff-bot/__init__.py
+
           git add .
           git commit -m "chore(release): ${{ steps.version.outputs.NEW_VERSION }}"
           echo "RELEASE_BRANCH=$BRANCH" >> $GITHUB_ENV
