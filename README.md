@@ -31,6 +31,7 @@ AI-powered pull request analysis tool that provides comprehensive code reviews, 
 - [Best Practices](#-best-practices)
 - [Contributing](#-contributing)
 - [Requirements](#-requirements)
+- [Versioning](#-versioning)
 
 ## ✨ Features
 
@@ -110,7 +111,7 @@ jobs:
 
 1. `GITHUB_TOKEN`: Automatically provided by GitHub Actions
 2. `OPENROUTER_API_KEY`: Your OpenRouter API key
-3. `PAT_TOKEN`: Personal Access Token with `pull-requests` and `contents` permissions (required for auto-approving Dependabot PRs)
+3. `PAT_TOKEN`: Personal Access Token with `pull-requests` and `contents` permissions (required for releases and Dependabot PRs)
    - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
    - Generate new token with:
      - `pull-requests` (write permission)
@@ -226,13 +227,60 @@ Check console output for detailed error messages.
 5. 🧪 Add tests for new features
 6. 🤖 Consider using different models for different types of analysis
 
+## 📈 Versioning
+
+This project uses semantic versioning through conventional commits. To trigger a new release:
+
+### Minor Version (New Features)
+
+```
+feat: add new feature
+```
+
+Example: `feat: add support for custom AI prompts`
+
+### Major Version (Breaking Changes)
+
+```
+feat!: breaking change
+```
+
+or
+
+```
+feat: new feature
+
+BREAKING CHANGE: description of breaking changes
+```
+
+Example:
+
+```
+feat!: change API response format
+```
+
+### Performance Improvements
+
+```
+perf: improve performance
+```
+
+Example: `perf: optimize PR analysis speed`
+
+The release workflow will:
+
+1. Detect these commits
+2. Create a release PR with version bump
+3. Update the changelog
+4. Create a GitHub release when merged
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
+3. Commit your changes using conventional commits
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 

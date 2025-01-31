@@ -3,12 +3,15 @@ version_variable = "pr-diff-bot/__init__.py:__version__"
 branch = "main"
 upload_to_pypi = false
 upload_to_release = true
-build_command = ""  # Empty string instead of false
+build_command = ""
 commit_message = "chore(release): {version}"
 commit_parser = "angular"
 changelog_components = "semantic_release.changelog.changelog"
 changelog_file = "CHANGELOG.md"
-# Configure release branches
+# Configure version bumping
+major_on_zero = false
+patch_without_tag = true
+
 [tool.semantic_release.branches.main]
 match = "main"
 prerelease = false
@@ -17,5 +20,8 @@ prerelease = false
 match = "release-*"
 prerelease = false
 
-# Disable pushing to main branch
-push_to_branch = false
+# Configure commit types that trigger releases
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "perf"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
