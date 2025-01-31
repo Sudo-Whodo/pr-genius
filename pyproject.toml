@@ -9,9 +9,13 @@ commit_parser = "angular"
 changelog_components = "semantic_release.changelog.changelog"
 changelog_file = "CHANGELOG.md"
 # Configure release branches
-branches = {
-    "main" = { "match": "main", "prerelease": false },
-    "release" = { "match": "release-*", "prerelease": false }
-}
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.release]
+match = "release-*"
+prerelease = false
+
 # Disable pushing to main branch
 push_to_branch = false
