@@ -71,17 +71,19 @@ jobs:
         run: |
           BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
           git checkout -b $BRANCH
-          semantic-release version
+          semantic-release version --no-commit
+          git add .
+          git commit -m "chore(release): ${{ steps.version.outputs.NEW_VERSION }}"
+          echo "RELEASE_BRANCH=$BRANCH" >> $GITHUB_ENV
 
       - name: Create Pull Request
         if: steps.version.outputs.NEW_VERSION != ''
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
-          git push -f origin $BRANCH
+          git push -f origin $RELEASE_BRANCH
           gh pr create \
             --title "chore(release): ${{ steps.version.outputs.NEW_VERSION }}" \
             --body "Automated release PR" \
             --base main \
-            --head $BRANCH
+            --head $RELEASE_BRANCH
