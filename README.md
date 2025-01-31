@@ -63,6 +63,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+          # repository and pull_request_number are automatically available in pull request events
           # Optional: specify a different model
           # model: "anthropic/claude-2"
 ```
@@ -86,21 +87,23 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-          repository: ${{ github.repository }}
-          pull_request_number: ${{ github.event.pull_request.number }}
+          # Both repository and pull_request_number are automatically available
+          # but can be specified manually if needed:
+          # repository: "owner/repo"
+          # pull_request_number: 123
           # Optional: specify a different model (default: anthropic/claude-3.5-sonnet)
           # model: "anthropic/claude-2"
 ```
 
 ### Action Inputs
 
-| Input                 | Description                        | Required | Default                     |
-| --------------------- | ---------------------------------- | -------- | --------------------------- |
-| `github_token`        | GitHub token for API access        | ✅       | -                           |
-| `openrouter_key`      | OpenRouter API key for AI analysis | ✅       | -                           |
-| `repository`          | Repository name (owner/repo)       | ✅       | -                           |
-| `pull_request_number` | PR number to analyze               | ✅       | -                           |
-| `model`               | OpenRouter model to use            | ❌       | anthropic/claude-3.5-sonnet |
+| Input                 | Description                        | Required | Default                          |
+| --------------------- | ---------------------------------- | -------- | -------------------------------- |
+| `github_token`        | GitHub token for API access        | ✅       | -                                |
+| `openrouter_key`      | OpenRouter API key for AI analysis | ✅       | -                                |
+| `repository`          | Repository name (owner/repo)       | ❌       | github.repository                |
+| `pull_request_number` | PR number to analyze               | ❌       | github.event.pull_request.number |
+| `model`               | OpenRouter model to use            | ❌       | anthropic/claude-3.5-sonnet      |
 
 ## 💻 Manual Installation
 
