@@ -11,6 +11,8 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Disable auto-approval attempts
+    auto-approve: false
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -23,3 +25,5 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Disable auto-approval attempts
+    auto-approve: false
