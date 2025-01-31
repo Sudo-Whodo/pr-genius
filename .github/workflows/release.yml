@@ -20,28 +20,37 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Python Semantic Release
-        id: release
-        uses: python-semantic-release/python-semantic-release@master
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          git_committer_name: github-actions
-          git_committer_email: github-actions@github.com
+          python-version: "3.8"
 
-      - name: Create Release PR
-        if: steps.release.outputs.released == 'true'
+      - name: Install dependencies
         run: |
-          # Create a new branch for the release
-          git checkout -b release-${{ steps.release.outputs.version }}
+          python -m pip install --upgrade pip
+          pip install python-semantic-release
 
-          # Push the changes
-          git push origin release-${{ steps.release.outputs.version }}
+      - name: Create Release Branch
+        run: |
+          version=$(semantic-release version --print)
+          git checkout -b release-${version}
 
-          # Create PR
-          gh pr create \
-            --title "chore(release): ${{ steps.release.outputs.version }}" \
-            --body "Automated release PR" \
-            --base main \
-            --head release-${{ steps.release.outputs.version }}
+      - name: Python Semantic Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          semantic-release version
+
+      - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(semantic-release version --print)
+          git push origin release-${version}
+          gh pr create \
+            --title "chore(release): ${version}" \
+            --body "Automated release PR" \
+            --base main \
+            --head release-${version}
