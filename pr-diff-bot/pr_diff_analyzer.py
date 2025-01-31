@@ -32,14 +32,13 @@ class PRDiffAnalyzer:
         """
         self.model = model
         self.github = Github(github_token)
-        self.openai_client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=openrouter_key,
-            default_headers={
-                "HTTP-Referer": "https://github.com/pr-diff-bot",
-                "X-Title": "PR Diff Analyzer"
-            }
-        )
+
+        # Initialize OpenAI client with OpenRouter configuration
+        headers = {
+            "HTTP-Referer": "https://github.com/pr-diff-bot",
+            "X-Title": "PR Diff Analyzer"
+        }
+        self.openai_client = OpenAI(api_key=openrouter_key, base_url="https://openrouter.ai/api/v1", default_headers=headers)
         self.bot_signature = "<!-- PR-DIFF-BOT-COMMENT -->"
 
     def get_pull_request(self, repo_name: str, pr_number: int) -> PullRequest:
