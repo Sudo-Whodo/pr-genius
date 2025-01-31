@@ -6,11 +6,16 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
       - name: PR Diff Analysis
         uses: ./
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Use PAT_TOKEN for PR comments
+          github_token: ${{ secrets.PAT_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}

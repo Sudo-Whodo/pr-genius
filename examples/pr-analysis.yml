@@ -21,8 +21,10 @@ jobs:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
         with:
-          # Required: GitHub token for API access (automatically provided)
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Required: Personal Access Token with PR write permissions
+          # Note: GITHUB_TOKEN doesn't have sufficient permissions for PR comments
+          # Create a PAT with 'repo' and 'pull_requests' scopes
+          github_token: ${{ secrets.PAT_TOKEN }}
 
           # Required: Your OpenRouter API key
           # Get one at: https://openrouter.ai/
