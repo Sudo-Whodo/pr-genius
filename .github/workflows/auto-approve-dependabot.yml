@@ -10,10 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]' && contains(github.event.pull_request.head.ref, 'github-actions')
     steps:
-      - name: Approve and merge PR
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --merge "$PR_URL"
+      - uses: hmarr/auto-approve-action@v3
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Enable auto-merge
+        run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
