@@ -14,6 +14,18 @@ patch_without_tag = true
 version_source = "tag"
 check_build_status = false
 
+# Configure version bumping rules
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feat", "fix", "perf"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+# Configure commit parsing
+[tool.semantic_release.parser_angular]
+allowed_types = ["feat", "fix", "perf", "refactor", "style", "docs", "test", "build", "ci", "chore"]
+minor_types = ["feat"]
+patch_types = ["fix", "perf"]
+
 [tool.semantic_release.branches.main]
 match = "main"
 prerelease = false
@@ -21,15 +33,3 @@ prerelease = false
 [tool.semantic_release.branches.release]
 match = "release-*"
 prerelease = false
-
-# Configure commit types that trigger releases
-[tool.semantic_release.commit_parser_options]
-allowed_tags = ["feat", "fix", "perf"]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf"]
-
-# Configure commit parsing
-[tool.semantic_release.parser_angular.allowed_types]
-fix = "patch"
-perf = "patch"
-feat = "minor"

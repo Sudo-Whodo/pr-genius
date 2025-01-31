@@ -60,18 +60,31 @@ jobs:
       - name: Get Next Version
         id: version
         run: |
-          # Initialize version if no tags exist
-          if ! git tag | grep -q "v"; then
-            VERSION="0.1.0"
+          # Get current version from __init__.py
+          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' pr-diff-bot/__init__.py)
+          echo "Current version: $CURRENT_VERSION"
+
+          # Get commit messages since last tag
+          COMMITS=$(git log --format=%B $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD)
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+
+          # Check for fix commits
+          if echo "$COMMITS" | grep -q "^fix:"; then
+            # Calculate patch version
+            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+            NEW_VERSION="$major.$minor.$((patch + 1))"
           else
-            VERSION=$(semantic-release version --print)
+            NEW_VERSION=$(semantic-release version --print)
           fi
 
-          if [ -z "$VERSION" ]; then
+          if [ -z "$NEW_VERSION" ]; then
             echo "No new version to release"
             exit 0
           fi
-          echo "NEW_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+          echo "New version: $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Create Release Branch and Update Version
         if: steps.version.outputs.NEW_VERSION != ''
