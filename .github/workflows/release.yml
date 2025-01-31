@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "**.md"
+      - ".github/**"
+      - "LICENSE"
 
 permissions:
   contents: write
@@ -20,6 +24,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.8"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -28,6 +33,14 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t pr-diff-analyzer .
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
   release:
     needs: build
@@ -46,6 +59,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.8"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -109,12 +123,41 @@ jobs:
           git push -f origin $RELEASE_BRANCH
           gh pr create \
             --title "chore(release): ${{ steps.version.outputs.NEW_VERSION }}" \
-            --body "Automated release PR" \
+            --body "Automated release PR
+
+            This PR was automatically created by the release workflow to update the version to ${{ steps.version.outputs.NEW_VERSION }}.
+
+            Changes included in this release:
+            $(git log --format='- %s' $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD)" \
             --base main \
             --head $RELEASE_BRANCH
 
-  publish:
+  tag-release:
     needs: [build, release]
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      contains(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Get version from commit message
+        id: get_version
+        run: |
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'chore\(release\): \K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        run: |
+          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
+          git push origin "v${{ steps.get_version.outputs.VERSION }}"
+
+  publish:
+    needs: [build, release, tag-release]
     if: needs.release.outputs.new_version != ''
     runs-on: ubuntu-latest
     steps:
@@ -139,6 +182,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           tags: |
             ghcr.io/${{ steps.repo_name.outputs.repo }}:latest
             ghcr.io/${{ steps.repo_name.outputs.repo }}:${{ needs.release.outputs.new_version }}
+
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
