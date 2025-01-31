@@ -120,13 +120,12 @@ jobs:
       - name: Get lowercase repository name
         id: repo_name
         run: |
-          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          echo "REPO=$REPO" >> $GITHUB_OUTPUT
+          echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           push: true
           tags: |
-            ghcr.io/${{ steps.repo_name.outputs.REPO }}:latest
-            ghcr.io/${{ steps.repo_name.outputs.REPO }}:${{ needs.release.outputs.new_version }}
+            ghcr.io/${{ steps.repo_name.outputs.repo }}:latest
+            ghcr.io/${{ steps.repo_name.outputs.repo }}:${{ needs.release.outputs.new_version }}
