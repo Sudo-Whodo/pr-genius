@@ -69,7 +69,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git checkout -b release-${{ steps.version.outputs.NEW_VERSION }}
+          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
+          git checkout -b $BRANCH
           semantic-release version
 
       - name: Create Pull Request
@@ -77,9 +78,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git push origin release-${{ steps.version.outputs.NEW_VERSION }}
+          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
+          git push -f origin $BRANCH
           gh pr create \
             --title "chore(release): ${{ steps.version.outputs.NEW_VERSION }}" \
             --body "Automated release PR" \
             --base main \
-            --head release-${{ steps.version.outputs.NEW_VERSION }}
+            --head $BRANCH
