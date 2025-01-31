@@ -7,6 +7,8 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: PR Diff Analysis
         uses: ./
         with:
