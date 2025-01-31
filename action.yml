@@ -11,10 +11,12 @@ inputs:
     required: true
   repository:
     description: "Repository name in format owner/repo"
-    required: true
+    required: false
+    default: ${{ github.repository }}
   pull_request_number:
     description: "Pull request number to analyze"
-    required: true
+    required: false
+    default: ${{ github.event.pull_request.number }}
   model:
     description: "OpenRouter model to use for analysis"
     required: false
@@ -22,7 +24,7 @@ inputs:
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/${{ github.repository }}:v1"
+  image: "Dockerfile"
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     OPENROUTER_API_KEY: ${{ inputs.openrouter_key }}
