@@ -1,0 +1,38 @@
+name: PR Analysis
+on:
+  pull_request:
+    types: [opened, synchronize]
+    # Optional: Specify paths to analyze
+    # paths:
+    #   - '**.py'
+    #   - '**.js'
+    #   - '**.ts'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for PR comments
+      pull-requests: write
+      # Required for accessing repository contents
+      contents: read
+
+    steps:
+      - name: PR Diff Analysis
+        uses: sudo-whodo/pr-genius@v1
+        with:
+          # Required: GitHub token for API access (automatically provided)
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Required: Your OpenRouter API key
+          # Get one at: https://openrouter.ai/
+          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+
+          # Optional: Repository name (default: current repository)
+          # repository: ${{ github.repository }}
+
+          # Optional: PR number (default: current PR number)
+          # pull_request_number: ${{ github.event.pull_request.number }}
+
+          # Optional: AI model to use
+          # model: "anthropic/claude-3.5-sonnet"
