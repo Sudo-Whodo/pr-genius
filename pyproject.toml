@@ -9,8 +9,9 @@ commit_parser = "angular"
 changelog_components = "semantic_release.changelog.changelog"
 changelog_file = "CHANGELOG.md"
 # Configure version bumping
-major_on_zero = false
+major_on_zero = true
 patch_without_tag = true
+version_source = "commit"
 
 [tool.semantic_release.branches.main]
 match = "main"
@@ -25,3 +26,9 @@ prerelease = false
 allowed_tags = ["feat", "fix", "perf"]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
+
+# Configure commit parsing
+[tool.semantic_release.parser_angular.allowed_types]
+fix = "patch"
+perf = "patch"
+feat = "minor"
