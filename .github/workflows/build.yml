@@ -1,7 +1,7 @@
 name: Build
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
   push:
     branches: [main]
@@ -9,8 +9,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Add a condition to ensure we're running on the PR's head
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Important: check out the PR head for pull_request_target
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
