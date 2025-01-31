@@ -139,6 +139,21 @@ jobs:
           git commit -m "chore(release): ${{ needs.check-release.outputs.new_version }}"
           git push -f origin $BRANCH
 
+      - name: Get changes since last tag
+        id: changes
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # First release - get all commits
+            CHANGES=$(git log --format="* %s" --reverse)
+          else
+            # Get commits since last tag
+            CHANGES=$(git log --format="* %s" --reverse ${PREVIOUS_TAG}..HEAD)
+          fi
+          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -150,7 +165,7 @@ jobs:
             This PR was automatically created by the release workflow to update the version to ${{ needs.check-release.outputs.new_version }}.
 
             Changes included in this release:
-            $(git log --format='- %s' $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD)" \
+            ${{ steps.changes.outputs.CHANGES }}" \
             --base main \
             --head "release-${{ needs.check-release.outputs.new_version }}"
 
@@ -229,9 +244,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get lowercase repository name
-        id: repo_name
+        id: repo
         run: |
-          echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          REPO="${{ github.repository }}"
+          echo "name=${REPO,,}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -240,8 +256,8 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           tags: |
-            ghcr.io/${{ steps.repo_name.outputs.repo }}:latest
-            ghcr.io/${{ steps.repo_name.outputs.repo }}:${{ needs.tag-and-release.outputs.version }}
+            ghcr.io/${{ steps.repo.outputs.name }}:latest
+            ghcr.io/${{ steps.repo.outputs.name }}:${{ needs.tag-and-release.outputs.version }}
 
       - name: Move cache
         run: |
