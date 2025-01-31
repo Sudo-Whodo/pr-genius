@@ -6,6 +6,10 @@
   description: Pull requests that update Python code
   color: "2b67c6"
 
+- name: github-actions
+  description: Pull requests that update GitHub Actions workflows
+  color: "000000"
+
 - name: bug
   description: Something isn't working
   color: "d73a4a"
