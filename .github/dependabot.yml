@@ -11,13 +11,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Enable auto-merge for Python packages
-    auto-merge: true
-    # Only merge if tests pass
-    auto-merge-conditions:
-      - "status-success=build"
-    # Create a version bump PR for Python dependencies
-    version-update-type: "bump-patch"
+    # Configure version updates
+    versioning-strategy: increase
+    # Configure PR settings
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -30,10 +28,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Enable auto-merge for GitHub Actions updates
-    auto-merge: true
-    # Only merge if tests pass
-    auto-merge-conditions:
-      - "status-success=build"
-    # Don't create version bumps for GitHub Actions updates
-    version-update-type: "none"
+    # Configure PR settings
+    open-pull-requests-limit: 10
+    rebase-strategy: "auto"
