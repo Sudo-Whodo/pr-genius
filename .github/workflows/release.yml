@@ -33,6 +33,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.head_commit.message, 'chore(release):') }}
+    outputs:
+      new_version: ${{ steps.version.outputs.NEW_VERSION }}
 
     steps:
       - uses: actions/checkout@v4
@@ -58,7 +60,8 @@ jobs:
       - name: Get Next Version
         id: version
         run: |
-          VERSION=$(semantic-release version --print)
+          # Force version calculation ignoring existing tags
+          VERSION=$(semantic-release version --print --no-check-version)
           if [ -z "$VERSION" ]; then
             echo "No new version to release"
             exit 0
@@ -72,7 +75,7 @@ jobs:
         run: |
           BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
           git checkout -b $BRANCH
-          semantic-release version --no-commit
+          semantic-release version --no-commit --no-check-version
           git add .
           git commit -m "chore(release): ${{ steps.version.outputs.NEW_VERSION }}"
           echo "RELEASE_BRANCH=$BRANCH" >> $GITHUB_ENV
@@ -91,7 +94,7 @@ jobs:
 
   publish:
     needs: [build, release]
-    if: needs.release.outputs.NEW_VERSION != ''
+    if: needs.release.outputs.new_version != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,4 +115,4 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ needs.release.outputs.NEW_VERSION }}
+            ghcr.io/${{ github.repository }}:${{ needs.release.outputs.new_version }}

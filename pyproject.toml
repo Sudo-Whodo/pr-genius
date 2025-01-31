@@ -11,7 +11,8 @@ changelog_file = "CHANGELOG.md"
 # Configure version bumping
 major_on_zero = true
 patch_without_tag = true
-version_source = "commit"
+version_source = "tag"
+check_build_status = false
 
 [tool.semantic_release.branches.main]
 match = "main"
