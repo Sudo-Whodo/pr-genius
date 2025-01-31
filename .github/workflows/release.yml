@@ -132,7 +132,7 @@ jobs:
             --base main \
             --head $RELEASE_BRANCH
 
-  tag-release:
+  tag-and-release:
     needs: [build, release]
     if: |
       github.event_name == 'push' &&
@@ -156,8 +156,29 @@ jobs:
           git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
           git push origin "v${{ steps.get_version.outputs.VERSION }}"
 
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          # Get changes since last release
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "v${{ steps.get_version.outputs.VERSION }}^" 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # First release - get all commits
+            CHANGES=$(git log --format="* %s" --reverse)
+          else
+            # Get commits between tags
+            CHANGES=$(git log --format="* %s" --reverse ${PREVIOUS_TAG}..v${{ steps.get_version.outputs.VERSION }})
+          fi
+
+          # Create GitHub release
+          gh release create "v${{ steps.get_version.outputs.VERSION }}" \
+            --title "Release v${{ steps.get_version.outputs.VERSION }}" \
+            --notes "## Changes in this release:
+
+            ${CHANGES}"
+
   publish:
-    needs: [build, release, tag-release]
+    needs: [build, release, tag-and-release]
     if: needs.release.outputs.new_version != ''
     runs-on: ubuntu-latest
     steps:
@@ -179,7 +200,7 @@ jobs:
           echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v5
         with:
           push: true
           cache-from: type=local,src=/tmp/.buildx-cache
