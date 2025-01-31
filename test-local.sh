@@ -16,7 +16,7 @@ fi
 
 # Default values
 REPO=${1:-"sudo-whodo/pr-genius"}
-PR_NUMBER=${2:-"1"}
+PR_NUMBER=${2:-"2"}
 MODEL=${3:-"anthropic/claude-3.5-sonnet"}
 
 # Build the container
@@ -29,4 +29,4 @@ docker run \
     -e GITHUB_TOKEN=$GITHUB_TOKEN \
     -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
     pr-diff-analyzer:local \
-    "$REPO" "$PR_NUMBER" "$MODEL"
+    "$REPO" "$PR_NUMBER" "--model" "$MODEL"

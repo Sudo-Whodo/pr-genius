@@ -40,20 +40,21 @@ class PRDiffAnalyzer:
         )
         self.bot_signature = "<!-- PR-DIFF-BOT-COMMENT -->"
 
-    def get_pull_request(self, repo_name: str, pr_number: int) -> PullRequest:
+    def get_pull_request(self, repo_name: str, pr_number: int) -> Tuple[Repository, PullRequest]:
         """
-        Get a pull request object from GitHub.
+        Get a pull request object and its repository from GitHub.
 
         Args:
             repo_name (str): Repository name in format 'owner/repo'
             pr_number (int): Pull request number
 
         Returns:
-            PullRequest: GitHub pull request object
+            Tuple[Repository, PullRequest]: GitHub repository and pull request objects
         """
         try:
             repo = self.github.get_repo(repo_name)
-            return repo.get_pull(pr_number)
+            pr = repo.get_pull(pr_number)
+            return repo, pr
         except Exception as e:
             logger.error(f"Error fetching pull request: {str(e)}")
             raise
@@ -110,11 +111,12 @@ class PRDiffAnalyzer:
             logger.error(f"Error checking PR analysis status: {str(e)}")
             raise
 
-    def analyze_diff(self, pr: PullRequest) -> Dict:
+    def analyze_diff(self, repo: Repository, pr: PullRequest) -> Dict:
         """
         Analyze the changes in a pull request.
 
         Args:
+            repo (Repository): GitHub repository object
             pr (PullRequest): GitHub pull request object
 
         Returns:
@@ -149,7 +151,7 @@ class PRDiffAnalyzer:
 
                 if file.status != 'removed':
                     try:
-                        content = pr.get_repo().get_contents(file.filename, ref=pr.head.sha)
+                        content = repo.get_contents(file.filename, ref=pr.head.sha)
                         analysis['file_contents'][file.filename] = content.decoded_content.decode('utf-8')
                     except Exception as e:
                         logger.warning(f"Could not fetch content for {file.filename}: {str(e)}")
@@ -352,8 +354,8 @@ Provide specific suggestions for documentation changes."""},
             pr_number (int): Pull request number
         """
         try:
-            # Get pull request
-            pr = self.get_pull_request(repo_name, pr_number)
+            # Get pull request and repository
+            repo, pr = self.get_pull_request(repo_name, pr_number)
 
             # Check if we should analyze this PR
             should_analyze, current_commit = self.should_analyze_pr(pr)
@@ -363,7 +365,7 @@ Provide specific suggestions for documentation changes."""},
                 return
 
             # Analyze the diff
-            analysis = self.analyze_diff(pr)
+            analysis = self.analyze_diff(repo, pr)
 
             # Get AI analysis
             ai_analysis = self.get_ai_analysis(pr, analysis)
