@@ -1,0 +1,27 @@
+- name: dependencies
+  description: Pull requests that update a dependency file
+  color: "0366d6"
+
+- name: python
+  description: Pull requests that update Python code
+  color: "2b67c6"
+
+- name: bug
+  description: Something isn't working
+  color: "d73a4a"
+
+- name: documentation
+  description: Improvements or additions to documentation
+  color: "0075ca"
+
+- name: enhancement
+  description: New feature or request
+  color: "a2eeef"
+
+- name: help wanted
+  description: Extra attention is needed
+  color: "008672"
+
+- name: question
+  description: Further information is requested
+  color: "d876e3"
