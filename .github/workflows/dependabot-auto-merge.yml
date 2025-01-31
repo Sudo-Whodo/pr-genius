@@ -8,9 +8,20 @@ permissions:
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request_target'
+    # Debug the context
     steps:
+      - name: Debug Event Context
+        env:
+          EVENT_CONTEXT: ${{ toJson(github.event) }}
+        run: |
+          echo "Event Context:"
+          echo "$EVENT_CONTEXT"
+          echo "Actor: ${{ github.actor }}"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+
       - name: Enable auto-merge for Dependabot PRs
+        if: github.event.pull_request.user.login == 'dependabot[bot]'
         run: gh pr merge --auto --merge "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
