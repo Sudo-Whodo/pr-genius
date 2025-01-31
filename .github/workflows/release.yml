@@ -91,7 +91,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}-$(date +%s)"
+          BRANCH="release-${{ steps.version.outputs.NEW_VERSION }}"
           git checkout -b $BRANCH
 
           # Update version in __init__.py
