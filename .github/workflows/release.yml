@@ -23,12 +23,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r pr-diff-bot/requirements.txt
-          pip install pytest pytest-mock
+          pip install -e .[dev]
 
       - name: Run tests
         run: |
-          pytest pr-diff-bot/tests/
+          python -m pytest pr-diff-bot/tests/
 
       - name: Build Docker image
         run: docker build -t pr-diff-analyzer .
