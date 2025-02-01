@@ -196,6 +196,12 @@ jobs:
           VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Get lowercase repository name
+        id: repo
+        run: |
+          REPO="${{ github.repository }}"
+          echo "name=${REPO,,}" >> $GITHUB_OUTPUT
+
       - name: Create and push tag
         run: |
           git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
@@ -218,7 +224,25 @@ jobs:
           # Create GitHub release
           gh release create "v${{ steps.get_version.outputs.VERSION }}" \
             --title "Release v${{ steps.get_version.outputs.VERSION }}" \
-            --notes "## Changes in this release:
+            --notes "## Installation
+
+            Multi-platform images available for AMD64 and ARM64.
+
+            Default pull (will select appropriate platform):
+            \`\`\`bash
+            docker pull ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
+            \`\`\`
+
+            Platform-specific pulls:
+            \`\`\`bash
+            # For AMD64 (x86_64)
+            docker pull --platform linux/amd64 ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
+
+            # For ARM64
+            docker pull --platform linux/arm64 ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
+            \`\`\`
+
+            ## Changes in this release:
 
             ${CHANGES}"
 
@@ -253,6 +277,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
+          platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           tags: |
