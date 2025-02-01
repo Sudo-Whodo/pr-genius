@@ -17,6 +17,8 @@ We use a sophisticated versioning approach that supports:
 
 Our `.github/workflows/build-and-publish.yml` handles Docker image building and tagging:
 
+junk
+
 ```yaml
 name: Build and Publish
 on:
