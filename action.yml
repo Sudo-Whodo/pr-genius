@@ -28,8 +28,11 @@ runs:
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     OPENROUTER_API_KEY: ${{ inputs.openrouter_key }}
+    REPOSITORY: ${{ inputs.repository }}
+    PR_NUMBER: ${{ inputs.pull_request_number }}
+    MODEL: ${{ inputs.model }}
   args:
     - ${{ inputs.repository }}
     - ${{ inputs.pull_request_number }}
-    - --model
+    - "--model"
     - ${{ inputs.model }}
