@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Build Status](https://github.com/sudo-whodo/pr-genius/actions/workflows/build.yml/badge.svg)](https://github.com/sudo-whodo/pr-genius/actions)
+[![Build Status](https://github.com/sudo-whodo/pr-genius/actions/workflows/release.yml/badge.svg)](https://github.com/sudo-whodo/pr-genius/actions)
 [![Version](https://img.shields.io/github/v/release/sudo-whodo/pr-genius?include_prereleases)](https://github.com/sudo-whodo/pr-genius/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
@@ -32,7 +32,7 @@ AI-powered pull request analysis tool that provides comprehensive code reviews, 
 
 ## 🚀 Quick Start
 
-Add this workflow to your repository at `.github/workflows/pr-analysis.yml`:
+1. Create `.github/workflows/pr-analysis.yml` in your repository:
 
 ```yaml
 name: PR Analysis
@@ -43,33 +43,71 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
     steps:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
-That's it! The action will now analyze your pull requests and provide AI-powered feedback.
+2. Add required secrets to your repository:
+
+   a. Personal Access Token (PAT):
+
+   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
+   - Generate new token with:
+     - `repo` scope (for repository access)
+     - `pull_requests` scope (for commenting on PRs)
+   - Add to repository secrets as `PAT_TOKEN`
+
+   b. OpenRouter API Key:
+
+   - Get your API key from https://openrouter.ai/
+   - Add to repository secrets as `OPENROUTER_API_KEY`
+
+That's it! PR Genius will now analyze your pull requests automatically.
 
 ## 📚 Documentation
 
-- [Usage Guide](docs/usage-guide.md) - How to use this action in your repositories
-- [Release Workflow](docs/release-workflow.md) - Understanding our release process
-- [API Reference](docs/usage-guide.md#configuration-options) - Available configuration options
+- [Usage Guide](docs/usage-guide.md) - Detailed setup and configuration
+- [Example Configurations](examples/README.md) - Ready-to-use workflow examples
+- [Release Process](docs/release-workflow.md) - Understanding our versioning
 
-## 🔧 Required Secrets
+## 🔧 Configuration
 
-1. `GITHUB_TOKEN`: Automatically provided by GitHub Actions
-2. `OPENROUTER_API_KEY`: Your OpenRouter API key
-   - Sign up at [OpenRouter](https://openrouter.ai/)
-   - Create an API key
-   - Add it to your repository secrets
+### Action Inputs
+
+| Input                 | Description                  | Required | Default                     |
+| --------------------- | ---------------------------- | -------- | --------------------------- |
+| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
+| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
+| `repository`          | Repository name (owner/repo) | No       | Current repository          |
+| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
+| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
+
+### Required Permissions
+
+The workflow needs these permissions:
+
+```yaml
+permissions:
+  pull-requests: write # For posting comments
+  contents: read # For accessing repository contents
+```
+
+Additionally, your PAT_TOKEN must have:
+
+- `repo` scope for repository access
+- `pull_requests` scope for commenting on PRs
 
 ## 📊 Example Output
 
-The action will add a comment to your PR with:
+PR Genius adds a comment to your pull request with:
 
 <details>
 <summary>Click to see example output</summary>
@@ -85,37 +123,43 @@ The action will add a comment to your PR with:
 
 ### 🧠 AI Code Review
 
-[AI-generated code review comments]
+Analysis by anthropic/claude-3.5-sonnet:
+[Detailed code review with impact assessment, risks, and suggestions]
 
 ### 📚 Documentation Updates Needed
 
-[Documentation suggestions]
+[Documentation suggestions based on changes]
 
 ### 🔍 Notable Changes
 
-[List of significant changes]
+- Major changes in src/main.py: +100/-30 lines
+- New file: tests/test_feature.py
 ```
 
 </details>
 
-## ⚠️ Error Handling
+## ⚠️ Troubleshooting
 
-The action includes comprehensive error handling for:
+1. **Permission Issues (403 Forbidden)**
 
-- GitHub API errors
-- OpenRouter API errors
-- Rate limiting
-- Authentication issues
+   - Ensure you're using PAT_TOKEN, not GITHUB_TOKEN
+   - Verify PAT has required scopes (repo, pull_requests)
+   - Check that the token hasn't expired
 
-Check workflow logs for detailed error messages.
+2. **Missing OpenRouter API Key**
 
-## 🎯 Best Practices
+   - Ensure you've added the `OPENROUTER_API_KEY` to your repository secrets
+   - Check that the secret name matches exactly
 
-1. 🔒 Keep API keys secure in repository secrets
-2. 🔄 Use on significant PRs for best value
-3. 👀 Review AI suggestions before implementing
-4. 📚 Keep documentation updated
-5. 🤖 Consider different models for different needs
+3. **Rate Limits**
+
+   - OpenRouter has rate limits based on your plan
+   - GitHub API also has rate limits
+
+4. **Token Security**
+   - Never commit tokens directly in workflow files
+   - Always use repository secrets
+   - Regularly rotate your PAT for security
 
 ## 🤝 Contributing
 
@@ -126,6 +170,7 @@ We welcome contributions! Here's how you can help:
 3. Commit your changes using conventional commits:
    - `feat: add new feature`
    - `fix: resolve issue`
+   - `docs: update documentation`
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 

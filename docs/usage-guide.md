@@ -2,9 +2,9 @@
 
 This guide explains how to use the PR Genius GitHub Action in your repositories for automated PR analysis.
 
-## Quick Start
+## Installation
 
-Add this workflow to your repository at `.github/workflows/pr-analysis.yml`:
+1. Create `.github/workflows/pr-analysis.yml` in your repository:
 
 ```yaml
 name: PR Analysis
@@ -15,174 +15,185 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
     steps:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT_TOKEN }}
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
-## Required Secrets
+2. Set up required secrets:
 
-1. `GITHUB_TOKEN`: Automatically provided by GitHub Actions
-2. `OPENROUTER_API_KEY`: Your OpenRouter API key
+   a. Personal Access Token (PAT):
+
+   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
+   - Generate new token with:
+     - `repo` scope (for repository access)
+     - `pull_requests` scope (for commenting on PRs)
+   - Add to repository secrets as `PAT_TOKEN`
+   - Note: GITHUB_TOKEN doesn't have sufficient permissions for PR comments
+
+   b. OpenRouter API Key:
+
    - Sign up at [OpenRouter](https://openrouter.ai/)
    - Create an API key
-   - Add it to your repository secrets
+   - Add to repository secrets as `OPENROUTER_API_KEY`
 
-## Configuration Options
+## Configuration
 
-| Input          | Description                 | Required | Default                     |
-| -------------- | --------------------------- | -------- | --------------------------- |
-| github_token   | GitHub token for API access | ✅       | -                           |
-| openrouter_key | OpenRouter API key          | ✅       | -                           |
-| model          | OpenRouter model to use     | ❌       | anthropic/claude-3.5-sonnet |
+### Action Inputs
 
-## Features
+| Input                 | Description                  | Required | Default                     |
+| --------------------- | ---------------------------- | -------- | --------------------------- |
+| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
+| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
+| `repository`          | Repository name (owner/repo) | No       | Current repository          |
+| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
+| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
 
-The action will:
+### Workflow Triggers
 
-1. Analyze PR changes
-2. Provide AI-powered code review
-3. Generate documentation suggestions
-4. Post results as PR comments
-
-## Example Output
-
-The action will add a comment to your PR with:
-
-```markdown
-## 🤖 Pull Request Analysis
-
-### 📊 Statistics
-
-- Files changed: 3
-- Lines added: 150
-- Lines deleted: 50
-
-### 🧠 AI Code Review
-
-[AI-generated code review comments]
-
-### 📚 Documentation Updates Needed
-
-[Documentation suggestions]
-
-### 🔍 Notable Changes
-
-[List of significant changes]
-```
-
-## Advanced Configuration
-
-### Using a Different Model
-
-```yaml
-- uses: sudo-whodo/pr-genius@v1
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-    model: "anthropic/claude-2"
-```
-
-### Running on Specific Branches
+Control when the action runs:
 
 ```yaml
 on:
   pull_request:
-    types: [opened, synchronize]
-    branches:
-      - main
-      - develop
-```
-
-### Running on Specific File Changes
-
-```yaml
-on:
-  pull_request:
-    types: [opened, synchronize]
-    paths:
+    types: [opened, synchronize] # Run on PR open and updates
+    paths: # Optional: filter by file types
       - "**.py"
       - "**.js"
       - "**.ts"
 ```
 
-## Best Practices
+### Permissions
 
-1. **API Key Security**
+Required workflow permissions:
 
-   - Never commit API keys
-   - Use repository secrets
-   - Regularly rotate keys
+```yaml
+permissions:
+  pull-requests: write # For posting comments
+  contents: read # For accessing repository contents
+```
 
-2. **Model Selection**
+Required PAT scopes:
 
-   - Use claude-3.5-sonnet for general use
-   - Consider claude-2 for complex analysis
-   - Test different models for your needs
+- `repo` - For repository access
+- `pull_requests` - For commenting on PRs
 
-3. **PR Size**
+### AI Models
 
-   - Keep PRs focused and small
-   - Split large changes into multiple PRs
-   - Makes analysis more effective
+Available OpenRouter models:
 
-4. **Review Process**
-   - Use AI analysis as a supplement
-   - Always perform human review
-   - Consider AI suggestions carefully
+- `anthropic/claude-3.5-sonnet` (default)
+- `anthropic/claude-2`
+- Other models from [OpenRouter](https://openrouter.ai/docs#models)
+
+Example with custom model:
+
+```yaml
+- uses: sudo-whodo/pr-genius@v1
+  with:
+    github_token: ${{ secrets.PAT_TOKEN }}
+    openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+    model: "anthropic/claude-2"
+```
+
+## Features
+
+### PR Analysis
+
+For each pull request, PR Genius:
+
+1. Analyzes changed files
+2. Calculates statistics
+3. Reviews code changes with AI
+4. Suggests documentation updates
+5. Posts a detailed comment
+
+### Analysis Output
+
+The PR comment includes:
+
+- File change statistics
+- AI-powered code review
+- Documentation suggestions
+- Notable changes
+- Detailed file analysis
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Missing API Key**
-
-   ```
-   Error: OpenRouter API key not found
-   ```
-
-   Solution: Add OPENROUTER_API_KEY to repository secrets
-
-2. **Permission Issues**
+1. **403 Forbidden Error**
 
    ```
    Error: Resource not accessible by integration
    ```
 
-   Solution: Check workflow permissions in repository settings
+   Solution:
+
+   - Use PAT_TOKEN instead of GITHUB_TOKEN
+   - Verify PAT has required scopes
+   - Check token expiration
+
+2. **Missing API Key**
+
+   ```
+   Error: OPENROUTER_API_KEY environment variable is not set
+   ```
+
+   Solution:
+
+   - Add OPENROUTER_API_KEY to repository secrets
+   - Check secret name spelling
 
 3. **Rate Limits**
-   ```
-   Error: API rate limit exceeded
-   ```
-   Solution: Check OpenRouter usage limits and plan
+   - OpenRouter limits based on plan
+   - GitHub API rate limits
+     Solution:
+   - Check usage limits
+   - Consider upgrading plan
 
-### Getting Help
+### Security Best Practices
 
-1. Open an issue in the [PR Genius repository](https://github.com/sudo-whodo/pr-genius)
-2. Include:
-   - Workflow file
-   - Error message
-   - PR details
-   - Steps to reproduce
+1. Token Security:
 
-## Version History
+   - Never commit tokens in code
+   - Use repository secrets
+   - Rotate PAT regularly
+   - Limit token scopes
 
-Check the [releases page](https://github.com/sudo-whodo/pr-genius/releases) for:
+2. Repository Settings:
+   - Enable branch protection
+   - Require PR reviews
+   - Set up required status checks
 
-- Latest versions
-- New features
-- Bug fixes
-- Breaking changes
+## Local Testing
 
-## Contributing
+For testing locally:
 
-We welcome contributions! See our [Contributing Guide](../CONTRIBUTING.md) for:
+1. Clone the repository:
 
-- Development setup
-- Coding standards
-- PR process
-- Feature requests
+```bash
+git clone https://github.com/sudo-whodo/pr-genius.git
+cd pr-genius
+```
+
+2. Run the test script:
+
+```bash
+./test-local.sh "owner/repo" "pr_number" "model"
+```
+
+This builds and runs the container locally for testing.
+
+## Support
+
+- [Open an issue](https://github.com/sudo-whodo/pr-genius/issues)
+- [Contributing guidelines](../CONTRIBUTING.md)
+- [Release workflow](release-workflow.md)

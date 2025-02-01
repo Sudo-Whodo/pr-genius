@@ -1,180 +1,189 @@
-# Release Workflow Documentation
+# Release Workflow
+
+This document explains our release process and versioning system.
 
 ## Overview
 
-This document describes the automated release process, including how Dependabot updates are handled and how releases are created.
+We use semantic versioning through conventional commits to automate our release process. When changes are pushed to main, our release workflow:
 
-## Workflow Components
+1. Detects version-worthy changes
+2. Creates a release PR
+3. Updates version numbers
+4. Creates git tags
+5. Builds and publishes Docker images
 
-### 1. Dependabot
+## Version Types
 
-- **Configuration**: `.github/dependabot.yml`
-- **Frequency**: Weekly checks on Mondays at 9 AM PT
-- **Monitors**:
-  - Python dependencies in `/pr-diff-bot`
-  - GitHub Actions in `/`
-- **Behavior**:
-  - Groups updates together to minimize PRs
-  - Creates PRs with `fix` prefix
-  - Adds appropriate labels (dependencies, python/github-actions)
+### 1. Patch Version (0.1.0 -> 0.1.1)
 
-### 2. Release Process
+Triggered by:
 
-#### A. Normal Code Changes
-
-```mermaid
-graph TD
-    A[Push to main] --> B{Contains release commit?}
-    B -->|No| C[Build Job]
-    C --> D[Check Release Job]
-    D --> E{Changes need release?}
-    E -->|Yes| F[Create Release PR]
-    F --> G[PR Review]
-    G -->|Approved & Merged| H[Tag and Release Job]
-    H --> I[Create Git Tag]
-    I --> J[Create GitHub Release]
-    J --> K[Publish Job]
-    K --> L[Build & Push Docker Image]
+```
+fix: bug fix description
 ```
 
-#### B. Dependabot Updates
+or
 
-```mermaid
-graph TD
-    A[Dependabot Schedule] --> B[Check Dependencies]
-    B --> C{Updates Available?}
-    C -->|Yes| D[Create PR]
-    D --> E[Build Job]
-    E --> F{Tests Pass?}
-    F -->|Yes| G[Auto-merge]
-    G --> H[Release Process]
-    H --> I[Create Release PR]
+```
+perf: performance improvement description
 ```
 
-## Job Details
+### 2. Minor Version (0.1.0 -> 0.2.0)
 
-### 1. Build Job
+Triggered by:
 
-- Runs on:
-  - Push to main
-  - Pull request events
-  - Workflow dispatch
-- Tasks:
-  - Install dependencies
-  - Build Docker image
-  - Cache layers
+```
+feat: new feature description
+```
 
-### 2. Check Release Job
+### 3. Major Version (0.1.0 -> 1.0.0)
 
-- Runs when:
-  - Push to main (non-release commits)
-- Tasks:
-  - Check commit messages for `fix:` or `feat:`
-  - Calculate next version number
-  - Determine if release needed
+Triggered by:
 
-### 3. Create Release PR Job
+```
+feat!: breaking change description
+```
 
-- Creates PR with:
-  - Version bump in **init**.py
-  - Changelog of changes since last release
-  - Branch name: `release-{version}`
+or
 
-### 4. Tag and Release Job
+```
+feat: new feature
 
-- Runs when:
-  - Release PR is merged
-- Tasks:
-  - Create git tag
-  - Create GitHub release
-  - Generate changelog
+BREAKING CHANGE: description of breaking changes
+```
 
-### 5. Publish Job
+## Release Process
 
-- Runs after:
-  - Successful tag creation
-- Tasks:
-  - Build Docker image
-  - Push to GitHub Container Registry
-  - Tag with version and latest
+1. **Change Detection**
 
-## Version Calculation
+   - Workflow runs on push to main
+   - Analyzes commit messages since last release
+   - Determines version bump type
 
-1. **Patch Version** (0.1.0 -> 0.1.1)
+2. **Release PR Creation**
 
-   - Triggered by `fix:` commits
-   - Used for bug fixes and minor improvements
-   - Also used by Dependabot updates
+   - Creates branch `release-x.y.z`
+   - Updates version in `__init__.py`
+   - Creates PR with changelog
 
-2. **Minor Version** (0.1.0 -> 0.2.0)
+3. **After PR Merge**
+   - Creates git tag
+   - Creates GitHub release
+   - Builds Docker image
+   - Pushes to GitHub Container Registry
 
-   - Triggered by `feat:` commits
-   - Used for new features
+## Docker Images
 
-3. **Major Version** (0.1.0 -> 1.0.0)
-   - Triggered by breaking changes
-   - Manual process
+Images are published to GitHub Container Registry:
 
-## Release Artifacts
+- `ghcr.io/sudo-whodo/pr-genius:latest`
+- `ghcr.io/sudo-whodo/pr-genius:x.y.z`
 
-1. **Git Tag**
+## Workflow Files
 
-   - Format: `v{version}` (e.g., v0.1.1)
-   - Created after release PR merge
+### 1. Release Workflow
 
-2. **GitHub Release**
+`.github/workflows/release.yml` handles:
 
-   - Title: Release v{version}
-   - Contains changelog
-   - Links to Docker image
+- Version detection
+- PR creation
+- Tag creation
+- Docker builds
 
-3. **Docker Image**
-   - Repository: ghcr.io/{repo}
-   - Tags:
-     - :latest
-     - :{version}
+### 2. PR Analysis
 
-## Automation Flow
+`.github/workflows/pr-analysis.yml` handles:
 
-1. **Code Changes**
+- PR analysis
+- AI code review
+- Comment posting
 
-   ```
-   Push to main -> Build -> Check Release -> Release PR -> Review -> Tag -> Publish
-   ```
+## Dependencies
 
-2. **Dependency Updates**
-   ```
-   Dependabot -> PR -> Build -> Auto-merge -> Release Process
-   ```
+### 1. Required Secrets
 
-## Security Considerations
+- `PAT_TOKEN`: GitHub Personal Access Token
+- `OPENROUTER_API_KEY`: OpenRouter API key
 
-1. **Permissions**
+### 2. Permissions
 
-   - GitHub Token: Basic workflow permissions
-   - PAT Token: Required for releases and PR creation
-   - Docker: Package write permissions
+The PAT_TOKEN needs:
 
-2. **Protected Branches**
-   - Main branch protected
-   - Requires PR for changes
-   - Requires build checks to pass
+- `contents: write` for releases
+- `packages: write` for Docker images
+- `pull-requests: write` for PR creation
 
 ## Best Practices
 
 1. **Commit Messages**
 
-   - Use conventional commits
-   - Prefix with type (fix:, feat:)
-   - Clear and descriptive
+   - Use conventional commit format
+   - Include scope when relevant
+   - Provide clear descriptions
 
 2. **Pull Requests**
 
-   - Review release PRs
-   - Check version bumps
-   - Verify changelog
+   - Use provided PR template
+   - Include comprehensive description
+   - Link related issues
 
-3. **Releases**
-   - Keep changelog up to date
-   - Test Docker images
-   - Monitor Dependabot PRs
+3. **Version Bumps**
+   - Consider impact of changes
+   - Use appropriate commit prefix
+   - Document breaking changes
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Version Not Incrementing**
+
+   - Check commit message format
+   - Ensure changes are in tracked files
+   - Verify workflow permissions
+
+2. **Docker Build Fails**
+
+   - Check Dockerfile syntax
+   - Verify dependencies
+   - Check registry permissions
+
+3. **Release PR Issues**
+   - Verify PAT_TOKEN permissions
+   - Check branch protection rules
+   - Review workflow logs
+
+## Manual Release
+
+If needed, you can trigger a release manually:
+
+1. Via GitHub UI:
+
+   - Go to Actions
+   - Select Release workflow
+   - Click "Run workflow"
+
+2. Via git tag:
+   ```bash
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+
+## Maintenance
+
+1. **Regular Tasks**
+
+   - Review and update dependencies
+   - Check workflow performance
+   - Monitor Docker image size
+
+2. **Security**
+
+   - Rotate PAT_TOKEN regularly
+   - Review workflow permissions
+   - Update base images
+
+3. **Documentation**
+   - Keep changelog updated
+   - Document breaking changes
+   - Update version requirements
