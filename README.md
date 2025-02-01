@@ -50,9 +50,9 @@ jobs:
     steps:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        with:
+          github_token: ${{ secrets.PAT_TOKEN }}
+          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 2. Add required secrets to your repository:
@@ -80,14 +80,19 @@ That's it! PR Genius will now analyze your pull requests automatically.
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Action Inputs
 
-| Variable             | Description                 | Required |
-| -------------------- | --------------------------- | -------- |
-| `GITHUB_TOKEN`       | Personal Access Token (PAT) | Yes      |
-| `OPENROUTER_API_KEY` | OpenRouter API key          | Yes      |
+| Input            | Description                 | Required |
+| ---------------- | --------------------------- | -------- |
+| `github_token`   | Personal Access Token (PAT) | Yes      |
+| `openrouter_key` | OpenRouter API key          | Yes      |
 
-The following variables are automatically set:
+These inputs are mapped to environment variables inside the action:
+
+- `GITHUB_TOKEN`: From github_token input
+- `OPENROUTER_API_KEY`: From openrouter_key input
+
+The following context variables are also automatically set:
 
 - `REPOSITORY`: Current repository (owner/repo)
 - `PR_NUMBER`: Current PR number
