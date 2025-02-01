@@ -20,15 +20,15 @@ jobs:
     steps:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
-        env:
+        with:
           # Required: Personal Access Token with PR write permissions
           # Note: GITHUB_TOKEN doesn't have sufficient permissions for PR comments
           # Create a PAT with 'repo' and 'pull_requests' scopes
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          github_token: ${{ secrets.PAT_TOKEN }}
 
           # Required: Your OpenRouter API key
           # Get one at: https://openrouter.ai/
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
 
           # Optional: Override default model
-          # MODEL: "anthropic/claude-2"
+          # model: "anthropic/claude-2"
