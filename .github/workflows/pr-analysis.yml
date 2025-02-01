@@ -18,6 +18,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         uses: ./
-        with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}

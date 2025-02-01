@@ -22,9 +22,9 @@ jobs:
     steps:
       - name: PR Diff Analysis
         uses: sudo-whodo/pr-genius@v1
-        with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 ```
 
 2. Set up required secrets:
@@ -46,15 +46,18 @@ jobs:
 
 ## Configuration
 
-### Action Inputs
+### Environment Variables
 
-| Input                 | Description                  | Required | Default                     |
-| --------------------- | ---------------------------- | -------- | --------------------------- |
-| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
-| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
-| `repository`          | Repository name (owner/repo) | No       | Current repository          |
-| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
-| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
+| Variable             | Description                 | Required |
+| -------------------- | --------------------------- | -------- |
+| `GITHUB_TOKEN`       | Personal Access Token (PAT) | Yes      |
+| `OPENROUTER_API_KEY` | OpenRouter API key          | Yes      |
+
+The following variables are automatically set:
+
+- `REPOSITORY`: Current repository (owner/repo)
+- `PR_NUMBER`: Current PR number
+- `MODEL`: OpenRouter model (default: anthropic/claude-3.5-sonnet)
 
 ### Workflow Triggers
 
@@ -97,10 +100,10 @@ Example with custom model:
 
 ```yaml
 - uses: sudo-whodo/pr-genius@v1
-  with:
-    github_token: ${{ secrets.PAT_TOKEN }}
-    openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-    model: "anthropic/claude-2"
+  env:
+    GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+    OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    MODEL: "anthropic/claude-2"
 ```
 
 ## Features

@@ -2,37 +2,15 @@ name: "PR Diff Analyzer"
 description: "Analyzes pull request changes and provides AI-powered code review comments"
 author: "PR Diff Bot"
 
-inputs:
-  github_token:
-    description: "GitHub token for API access"
-    required: true
-  openrouter_key:
-    description: "OpenRouter API key for AI analysis"
-    required: true
-  repository:
-    description: "Repository name in format owner/repo"
-    required: false
-    default: ${{ github.repository }}
-  pull_request_number:
-    description: "Pull request number to analyze"
-    required: false
-    default: ${{ github.event.pull_request.number }}
-  model:
-    description: "OpenRouter model to use for analysis"
-    required: false
-    default: "anthropic/claude-3.5-sonnet"
-
 runs:
   using: "docker"
   image: "Dockerfile"
   env:
-    GITHUB_TOKEN: ${{ inputs.github_token }}
-    OPENROUTER_API_KEY: ${{ inputs.openrouter_key }}
-    REPOSITORY: ${{ inputs.repository }}
-    PR_NUMBER: ${{ inputs.pull_request_number }}
-    MODEL: ${{ inputs.model }}
+    REPOSITORY: ${{ github.repository }}
+    PR_NUMBER: ${{ github.event.pull_request.number }}
+    MODEL: "anthropic/claude-3.5-sonnet"
   args:
-    - ${{ inputs.repository }}
-    - ${{ inputs.pull_request_number }}
+    - ${{ github.repository }}
+    - ${{ github.event.pull_request.number }}
     - "--model"
-    - ${{ inputs.model }}
+    - "anthropic/claude-3.5-sonnet"
