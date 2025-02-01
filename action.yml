@@ -9,6 +9,18 @@ inputs:
   openrouter_key:
     description: "OpenRouter API key for AI analysis"
     required: true
+  repository:
+    description: "Repository name in format owner/repo"
+    required: false
+    default: ${{ github.repository }}
+  pull_request_number:
+    description: "Pull request number to analyze"
+    required: false
+    default: ${{ github.event.pull_request.number }}
+  model:
+    description: "OpenRouter model to use for analysis"
+    required: false
+    default: "anthropic/claude-3.5-sonnet"
 
 runs:
   using: "docker"
@@ -16,11 +28,11 @@ runs:
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
     OPENROUTER_API_KEY: ${{ inputs.openrouter_key }}
-    REPOSITORY: ${{ github.repository }}
-    PR_NUMBER: ${{ github.event.pull_request.number }}
-    MODEL: "anthropic/claude-3.5-sonnet"
+    REPOSITORY: ${{ inputs.repository }}
+    PR_NUMBER: ${{ inputs.pull_request_number }}
+    MODEL: ${{ inputs.model }}
   args:
-    - ${{ github.repository }}
-    - ${{ github.event.pull_request.number }}
+    - ${{ inputs.repository }}
+    - ${{ inputs.pull_request_number }}
     - "--model"
-    - "anthropic/claude-3.5-sonnet"
+    - ${{ inputs.model }}
