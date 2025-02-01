@@ -46,23 +46,25 @@ jobs:
 
 ## Configuration
 
-### Required Inputs
+### Action Inputs
 
-| Input            | Description                 | Required |
-| ---------------- | --------------------------- | -------- |
-| `github_token`   | Personal Access Token (PAT) | Yes      |
-| `openrouter_key` | OpenRouter API key          | Yes      |
+| Input                 | Description                  | Required | Default                     |
+| --------------------- | ---------------------------- | -------- | --------------------------- |
+| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
+| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
+| `repository`          | Repository name (owner/repo) | No       | Current repository          |
+| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
+| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
 
-These inputs are automatically mapped to environment variables inside the action:
+These inputs are mapped to environment variables inside the action:
 
-- `GITHUB_TOKEN`: From github_token input
-- `OPENROUTER_API_KEY`: From openrouter_key input
-
-The following context variables are also automatically set:
-
-- `REPOSITORY`: Current repository (owner/repo)
-- `PR_NUMBER`: Current PR number
-- `MODEL`: OpenRouter model (default: anthropic/claude-3.5-sonnet)
+- Required inputs:
+  - `GITHUB_TOKEN`: From github_token input
+  - `OPENROUTER_API_KEY`: From openrouter_key input
+- Optional inputs:
+  - `REPOSITORY`: From repository input (defaults to current repository)
+  - `PR_NUMBER`: From pull_request_number input (defaults to current PR)
+  - `MODEL`: From model input (defaults to claude-3.5-sonnet)
 
 ### Workflow Triggers
 

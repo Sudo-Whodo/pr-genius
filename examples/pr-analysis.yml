@@ -30,5 +30,11 @@ jobs:
           # Get one at: https://openrouter.ai/
           openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
 
-          # Optional: Override default model
+          # Optional: Repository name (default: current repository)
+          # repository: "owner/repo"
+
+          # Optional: PR number (default: current PR number)
+          # pull_request_number: 123
+
+          # Optional: OpenRouter model to use
           # model: "anthropic/claude-2"
