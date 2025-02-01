@@ -1,0 +1,25 @@
+# Default owners for everything in the repo
+* @sudo-whodo
+
+# Python code
+/pr-diff-bot/ @sudo-whodo
+
+# GitHub Actions workflows
+/.github/workflows/ @sudo-whodo
+
+# Documentation
+/docs/ @sudo-whodo
+/examples/ @sudo-whodo
+*.md @sudo-whodo
+
+# Configuration files
+/action.yml @sudo-whodo
+/pyproject.toml @sudo-whodo
+/.github/*.yml @sudo-whodo
+/Dockerfile @sudo-whodo
+
+# Scripts
+*.sh @sudo-whodo
+
+# Dependencies
+/pr-diff-bot/requirements.txt @sudo-whodo
