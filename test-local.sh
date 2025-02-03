@@ -34,12 +34,12 @@ echo "- OpenRouter Key: ${OPENROUTER_API_KEY:0:4}...${OPENROUTER_API_KEY: -4}"
 
 # Build the container
 echo -e "\nBuilding container..."
-docker build -t pr-diff-analyzer:local .
+docker build -t pr_diff_bot:local .
 
 # Run the container
 echo -e "\nRunning analysis..."
 docker run \
     -e GITHUB_TOKEN=$GITHUB_TOKEN \
     -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
-    pr-diff-analyzer:local \
+    pr_diff_bot:local \
     "$REPO" "$PR_NUMBER" "--model" "$MODEL"
