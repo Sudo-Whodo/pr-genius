@@ -33,3 +33,6 @@ prerelease = false
 [tool.semantic_release.branches.release]
 match = "release-*"
 prerelease = false
+
+[tool.semantic_release.repository]
+repository = "pr-diff-bot"
