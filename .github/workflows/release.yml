@@ -62,7 +62,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           # Get next version
-          NEW_VERSION=$(semantic-release version --print)
+          NEW_VERSION=$(semantic-release version --noop)
           if [ -z "$NEW_VERSION" ]; then
             echo "No version bump needed"
             exit 0
