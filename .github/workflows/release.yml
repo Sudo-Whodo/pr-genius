@@ -97,16 +97,23 @@ jobs:
           echo "Commits since last tag:"
           echo "$COMMITS"
 
-          # Check for fix commits
-          if echo "$COMMITS" | grep -q "^fix:"; then
-            # Calculate patch version
+          # Check for breaking changes first
+          if echo "$COMMITS" | grep -q "BREAKING CHANGE:"; then
+            # Calculate major version
             IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
-            NEW_VERSION="$major.$minor.$((patch + 1))"
+            NEW_VERSION="$((major + 1)).0.0"
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          # Then check for features
           elif echo "$COMMITS" | grep -q "^feat:"; then
             # Calculate minor version
             IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
             NEW_VERSION="$major.$((minor + 1)).0"
+            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          # Finally check for fixes
+          elif echo "$COMMITS" | grep -q "^fix:"; then
+            # Calculate patch version
+            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+            NEW_VERSION="$major.$minor.$((patch + 1))"
             echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           fi
 
