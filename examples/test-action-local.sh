@@ -68,6 +68,11 @@ fi
 WORKFLOW_FILE=".github/workflows/test.yml"
 mkdir -p .github/workflows
 
+# Backup existing test.yml if it exists
+if [ -f "$WORKFLOW_FILE" ]; then
+    mv "$WORKFLOW_FILE" "${WORKFLOW_FILE}.bak"
+fi
+
 cat > "$WORKFLOW_FILE" << EOL
 name: Test PR Analysis
 on: workflow_dispatch
@@ -141,5 +146,8 @@ act workflow_dispatch -W .github/workflows/test.yml \
 # Clean up secrets file
 rm "$SECRETS_FILE"
 
-# Clean up
-rm -rf .github
+# Clean up test workflow file and restore backup if it existed
+rm "$WORKFLOW_FILE"
+if [ -f "${WORKFLOW_FILE}.bak" ]; then
+    mv "${WORKFLOW_FILE}.bak" "$WORKFLOW_FILE"
+fi

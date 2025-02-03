@@ -67,5 +67,5 @@ runs:
     - ${{ inputs.pull_request_number }}
     - "--provider"
     - ${{ inputs.provider }}
-    - ${{ inputs.model != '' && '--model' || '' }}
-    - ${{ inputs.model != '' && inputs.model || '' }}
+    - "--model"
+    - ${{ inputs.model }}

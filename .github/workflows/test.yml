@@ -1,0 +1,32 @@
+name: Test PR Analysis
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to analyze"
+        required: true
+        default: "1"
+      provider:
+        description: "LLM provider (openrouter, ollama, bedrock)"
+        required: false
+        default: "openrouter"
+      model:
+        description: "Model to use"
+        required: false
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    name: Analyze PR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PR Analysis
+        uses: ./
+        with:
+          github_token: ${{ secrets.PAT_TOKEN }}
+          provider: ${{ inputs.provider }}
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          repository: ${{ github.repository }}
+          pull_request_number: ${{ inputs.pr_number }}
+          model: ${{ inputs.model }}

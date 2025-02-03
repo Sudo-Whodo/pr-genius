@@ -15,8 +15,19 @@ while [ "$#" -gt 0 ]; do
         --repo) REPO="$2"; shift 2;;
         --pr) PR="$2"; shift 2;;
         --provider) PROVIDER="$2"; shift 2;;
-        --model) MODEL="$2"; shift 2;;
-        *) echo "Unknown parameter: $1"; exit 1;;
+        --model)
+            if [ "$2" != "null" ] && [ "$2" != "" ]; then
+                MODEL="$2"
+            fi
+            shift 2
+            ;;
+        "") shift;; # Skip empty arguments
+        *)
+            if [ "$1" != "null" ] && [ "$1" != "" ]; then
+                echo "Unknown parameter: $1"; exit 1
+            fi
+            shift
+            ;;
     esac
 done
 
