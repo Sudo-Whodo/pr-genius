@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - main
+      - "feature/*"
+      - "fix/*"
 
 permissions:
   contents: write
@@ -99,12 +101,28 @@ jobs:
             exit 0
           fi
 
+          # Determine branch type and target
+          if [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
+            BASE_BRANCH="feature/$(echo ${{ github.ref_name }} | cut -d/ -f2-)"
+            PRERELEASE_TYPE="alpha"
+          elif [[ "${{ github.ref }}" == refs/heads/fix/* ]]; then
+            BASE_BRANCH="fix/$(echo ${{ github.ref_name }} | cut -d/ -f2-)"
+            PRERELEASE_TYPE="beta"
+          else
+            BASE_BRANCH="main"
+            PRERELEASE_TYPE=""
+          fi
+
           # Create release branch
           BRANCH="release-$NEW_VERSION"
           git checkout -b $BRANCH
 
           # Update version and create changelog
-          semantic-release version --no-commit
+          if [ -n "$PRERELEASE_TYPE" ]; then
+            semantic-release version --prerelease $PRERELEASE_TYPE --no-commit
+          else
+            semantic-release version --no-commit
+          fi
 
           # Commit changes
           git add .
@@ -112,11 +130,19 @@ jobs:
           git push -f origin $BRANCH
 
           # Create PR
-          gh pr create \
-            --title "chore(release): $NEW_VERSION" \
-            --body "Automated release PR to update version to $NEW_VERSION" \
-            --base main \
-            --head $BRANCH
+          if [ -n "$PRERELEASE_TYPE" ]; then
+            gh pr create \
+              --title "chore(prerelease): $NEW_VERSION" \
+              --body "Automated prerelease PR to update version to $NEW_VERSION" \
+              --base $BASE_BRANCH \
+              --head $BRANCH
+          else
+            gh pr create \
+              --title "chore(release): $NEW_VERSION" \
+              --body "Automated release PR to update version to $NEW_VERSION" \
+              --base main \
+              --head $BRANCH
+          fi
 
   release:
     # Only run when a release PR is merged
@@ -170,11 +196,24 @@ jobs:
           git tag -f "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
           git push --force origin "v${{ steps.get_version.outputs.VERSION }}"
 
+          # Determine if this is a prerelease
+          if [[ "${{ github.ref }}" == refs/heads/feature/* ]]; then
+            IS_PRERELEASE="--prerelease"
+            TARGET_BRANCH="${{ github.ref_name }}"
+          elif [[ "${{ github.ref }}" == refs/heads/fix/* ]]; then
+            IS_PRERELEASE="--prerelease"
+            TARGET_BRANCH="${{ github.ref_name }}"
+          else
+            IS_PRERELEASE=""
+            TARGET_BRANCH="main"
+          fi
+
           # Create GitHub release
           gh release create "v${{ steps.get_version.outputs.VERSION }}" \
             --title "Release v${{ steps.get_version.outputs.VERSION }}" \
             --notes "See CHANGELOG.md for details" \
-            --target main
+            --target $TARGET_BRANCH \
+            $IS_PRERELEASE
 
   publish:
     needs: release

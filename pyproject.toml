@@ -33,5 +33,15 @@ prerelease = false
 match = "release-*"
 prerelease = false
 
+[tool.semantic_release.branches.feature]
+match = "feature/*"
+prerelease = true
+prerelease_token = "alpha"
+
+[tool.semantic_release.branches.fix]
+match = "fix/*"
+prerelease = true
+prerelease_token = "beta"
+
 [tool.semantic_release.repository]
 repository = "pr-diff-bot"
