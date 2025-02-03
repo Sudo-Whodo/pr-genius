@@ -49,5 +49,9 @@ case "$PROVIDER" in
 esac
 
 # Run the PR diff analyzer
-echo "Running analysis for repository: $REPO, PR: $PR, Provider: $PROVIDER, Model: $MODEL"
-python /app/pr_diff_analyzer.py --repo "$REPO" --pr "$PR" --provider "$PROVIDER" --model "$MODEL"
+echo "Running analysis for repository: $REPO, PR: $PR, Provider: $PROVIDER${MODEL:+, Model: $MODEL}"
+if [ -n "$MODEL" ]; then
+    python /app/pr_diff_analyzer.py --repo "$REPO" --pr "$PR" --provider "$PROVIDER" --model "$MODEL"
+else
+    python /app/pr_diff_analyzer.py --repo "$REPO" --pr "$PR" --provider "$PROVIDER"
+fi
