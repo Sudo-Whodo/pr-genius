@@ -17,4 +17,4 @@ jobs:
         uses: ./
         with:
           github_token: ${{ secrets.PAT_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}

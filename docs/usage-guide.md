@@ -37,7 +37,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           provider: openrouter # or ollama, bedrock
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }} # if using OpenRouter
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }} # if using OpenRouter
           model: anthropic/claude-3-sonnet # optional
           system_content: "Your custom review instructions" # optional
           docs_system_content: "Your custom docs review instructions" # optional

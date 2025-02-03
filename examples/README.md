@@ -55,7 +55,7 @@ on:
 | Input                 | Description                  | Required | Default                     |
 | --------------------- | ---------------------------- | -------- | --------------------------- |
 | `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
-| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
+| `openrouter_api_key`  | OpenRouter API key           | Yes      | -                           |
 | `repository`          | Repository name (owner/repo) | No       | Current repository          |
 | `pull_request_number` | PR number to analyze         | No       | Current PR number           |
 | `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
@@ -68,7 +68,7 @@ To use a different AI model:
 - uses: sudo-whodo/pr-genius@v1
   with:
     github_token: ${{ secrets.PAT_TOKEN }}
-    openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+    openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
     model: "anthropic/claude-2"
 ```
 
