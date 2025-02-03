@@ -13,9 +13,7 @@ from dotenv import load_dotenv
 import git
 import sys
 import os
-# Add the root directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from llm_clients import get_llm_client
+from pr_diff_bot.llm_clients import get_llm_client
 
 # Configure logging
 logging.basicConfig(
