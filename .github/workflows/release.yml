@@ -40,17 +40,7 @@ jobs:
       - name: Check if release is needed
         id: check
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            # Check if there are changes that warrant a new version
-            NEW_VERSION=$(semantic-release version --noop)
-            if [ -z "$NEW_VERSION" ]; then
-              echo "No version bump needed"
-              echo "should_release=false" >> $GITHUB_OUTPUT
-            else
-              echo "Version bump needed: $NEW_VERSION"
-              echo "should_release=true" >> $GITHUB_OUTPUT
-            fi
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.event_name }}" == "push" ]]; then
             # Check if there are changes that warrant a new version
             NEW_VERSION=$(semantic-release version --noop)
             if [ -z "$NEW_VERSION" ]; then
