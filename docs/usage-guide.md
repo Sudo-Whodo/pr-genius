@@ -60,9 +60,13 @@ export GITHUB_TOKEN=your_token
 ./examples/test-local.sh --provider ollama --model deepseek-r1:1.5b --pr 3
 ```
 
-### Using test-action-local.sh
+### Testing Options
 
-For testing the actual GitHub Action locally using act:
+There are two ways to test the action:
+
+#### 1. Using test-action-local.sh (Local Testing)
+
+For testing the action locally using act:
 
 1. Install act:
 
@@ -104,6 +108,28 @@ The script will:
 - Clean up temporary files
 
 Note for M-series Mac users: The script automatically handles architecture differences by using `--container-architecture linux/amd64`.
+
+#### 2. Using Manual Workflow (GitHub UI)
+
+You can also trigger tests directly from GitHub's UI:
+
+1. Go to your repository's "Actions" tab
+2. Select "Test PR Analysis" workflow from the left sidebar
+3. Click "Run workflow" button
+4. Fill in the form:
+   - PR number (required, defaults to "1")
+   - Provider (optional, defaults to "openrouter")
+   - Model (optional)
+5. Click "Run workflow" to start the analysis
+
+This method is useful when you want to:
+
+- Test without local setup
+- Run multiple tests with different configurations
+- Share test results with team members
+- Debug issues in the GitHub Actions environment
+
+The workflow uses your repository's secrets (PAT_TOKEN and OPENROUTER_API_KEY) and provides the same functionality as local testing.
 
 ## LLM Providers
 

@@ -26,6 +26,47 @@ This directory contains example configurations for using PR Genius in your repos
 
 That's it! PR Genius will now analyze your pull requests automatically.
 
+## Testing
+
+There are two ways to test PR Genius:
+
+### 1. Manual Workflow (GitHub UI)
+
+The repository includes a test workflow that can be triggered manually:
+
+1. Go to your repository's "Actions" tab
+2. Select "Test PR Analysis" workflow
+3. Click "Run workflow"
+4. Configure the test:
+   - PR number (required, defaults to "1")
+   - Provider (optional, defaults to "openrouter")
+   - Model (optional)
+5. Click "Run workflow"
+
+This is useful for quick tests without local setup and for sharing test results with team members.
+
+### 2. Local Testing with act
+
+For local development testing:
+
+```bash
+# Test with OpenRouter
+export GITHUB_TOKEN=your_token
+export OPENROUTER_API_KEY=your_key
+./test-action-local.sh --pr 1
+
+# Test with specific model
+./test-action-local.sh --provider openrouter --model anthropic/claude-3-sonnet --pr 1
+
+# Test with Ollama
+./test-action-local.sh --provider ollama --model deepseek-r1:1.5b --pr 1
+
+# Test with Bedrock
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+./test-action-local.sh --provider bedrock --model anthropic.claude-3-sonnet --pr 1
+```
+
 ## Configuration Options
 
 ### Trigger Events
