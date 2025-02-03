@@ -125,16 +125,10 @@ jobs:
           VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Publish Release
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          # Create and push tag
-          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
-          git push origin "v${{ steps.get_version.outputs.VERSION }}"
-
-          # Publish release
-          semantic-release publish
+        run: semantic-release publish
 
   publish:
     needs: release
