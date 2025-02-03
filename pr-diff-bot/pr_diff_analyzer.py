@@ -11,7 +11,11 @@ from github.Repository import Repository
 from github.IssueComment import IssueComment
 from dotenv import load_dotenv
 import git
-from openai import OpenAI
+import sys
+import os
+# Add the root directory to Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from llm_clients import get_llm_client
 
 # Configure logging
 logging.basicConfig(
@@ -21,24 +25,44 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PRDiffAnalyzer:
-    def __init__(self, github_token: str, openrouter_key: str, model: str = "anthropic/claude-3.5-sonnet"):
+    def __init__(self, github_token: str, model: str = None):
         """
-        Initialize the PR Diff Analyzer with GitHub and OpenRouter authentication.
+        Initialize the PR Diff Analyzer with GitHub authentication.
 
         Args:
             github_token (str): GitHub personal access token
-            openrouter_key (str): OpenRouter API key
-            model (str): OpenRouter model to use (default: anthropic/claude-3.5-sonnet)
+            model (str): Model to use (default: anthropic/claude-3.5-sonnet)
         """
-        self.model = model
+        self.model = model  # Will be set by the LLM client's default if None
         self.github = Github(github_token)
-
-        # Initialize OpenAI client with minimal configuration
-        self.openai_client = OpenAI(
-            api_key=openrouter_key,
-            base_url="https://openrouter.ai/api/v1"
-        )
+        self.llm_client = get_llm_client()  # Uses environment variables for configuration
         self.bot_signature = "<!-- PR-DIFF-BOT-COMMENT -->"
+
+        # Load system prompts
+        self.default_system_content = """
+You are a senior software engineer reviewing a pull request. Analyze the changes and provide:
+1. Impact assessment on the codebase
+2. Potential risks or concerns
+3. Suggestions for improvement
+4. Documentation updates needed
+Keep the analysis concise but comprehensive."""
+
+        self.default_docs_system_content = """
+Analyze the changes and suggest documentation updates. Consider:
+1. What new features or changes need documentation
+2. Which existing docs need updating
+3. Code examples or usage instructions needed
+Provide specific suggestions for documentation changes."""
+
+        # Get system prompts from environment variables
+        self.system_content = os.getenv('PR_REVIEW_SYSTEM_CONTENT', self.default_system_content)
+        self.docs_system_content = os.getenv('PR_REVIEW_DOCS_SYSTEM_CONTENT', self.default_docs_system_content)
+
+        # Log the prompts being used
+        logger.info("Using code review prompt:")
+        logger.info(self.system_content)
+        logger.info("Using documentation review prompt:")
+        logger.info(self.docs_system_content)
 
     def get_pull_request(self, repo_name: str, pr_number: int) -> Tuple[Repository, PullRequest]:
         """
@@ -173,7 +197,7 @@ class PRDiffAnalyzer:
 
     def get_ai_response(self, messages: List[Dict]) -> Dict:
         """
-        Helper method to get AI response from OpenRouter.
+        Helper method to get AI response using configured LLM client.
 
         Args:
             messages: List of message dictionaries
@@ -182,18 +206,7 @@ class PRDiffAnalyzer:
             Dict with analysis and model info
         """
         try:
-            response = self.openai_client.chat.completions.create(
-                model=self.model,
-                messages=messages
-            )
-
-            if not response or not hasattr(response, 'choices') or not response.choices:
-                raise ValueError("Invalid response from OpenRouter")
-
-            return {
-                'content': response.choices[0].message.content if response.choices else "No response generated",
-                'model': response.model if hasattr(response, 'model') else self.model
-            }
+            return self.llm_client.get_completion(messages, self.model)
         except Exception as e:
             logger.error(f"Error in AI response: {str(e)}")
             return {
@@ -235,13 +248,7 @@ Detailed Changes:
                     context += f"\n{file['filename']} changes:\n{file['patch']}\n"
 
             messages = [
-                {"role": "system", "content": """
-You are a senior software engineer reviewing a pull request. Analyze the changes and provide:
-1. Impact assessment on the codebase
-2. Potential risks or concerns
-3. Suggestions for improvement
-4. Documentation updates needed
-Keep the analysis concise but comprehensive."""},
+                {"role": "system", "content": self.system_content},
                 {"role": "user", "content": context}
             ]
 
@@ -281,12 +288,7 @@ Files changed:
 """
 
             messages = [
-                {"role": "system", "content": """
-Analyze the changes and suggest documentation updates. Consider:
-1. What new features or changes need documentation
-2. Which existing docs need updating
-3. Code examples or usage instructions needed
-Provide specific suggestions for documentation changes."""},
+                {"role": "system", "content": self.docs_system_content},
                 {"role": "user", "content": docs_context}
             ]
 
@@ -373,11 +375,20 @@ Provide specific suggestions for documentation changes."""},
             # Get documentation update suggestions
             doc_updates = self.update_documentation(pr, analysis)
 
-            # Create and post comment
+            # Create comment
             comment = self.create_summary_comment(analysis, ai_analysis, doc_updates, current_commit)
-            pr.create_issue_comment(comment)
 
-            logger.info(f"Successfully posted analysis to PR #{pr_number} for commit {current_commit[:8]}")
+            # Check if we're in dry-run mode
+            if os.getenv('DRY_RUN', '').lower() == 'true':
+                logger.info("DRY RUN: Would post the following comment:")
+                print("\n" + "="*80)
+                print(comment)
+                print("="*80 + "\n")
+                logger.info(f"Skipping comment creation for PR #{pr_number} (dry run)")
+            else:
+                # Post comment to PR
+                pr.create_issue_comment(comment)
+                logger.info(f"Successfully posted analysis to PR #{pr_number} for commit {current_commit[:8]}")
 
         except Exception as e:
             logger.error(f"Error in post_analysis: {str(e)}")
@@ -392,25 +403,38 @@ def main():
     parser = argparse.ArgumentParser(description='GitHub PR Diff Analyzer')
     parser.add_argument('--repo', required=True, help='Repository name (owner/repo)')
     parser.add_argument('--pr', type=int, required=True, help='Pull request number')
-    parser.add_argument('--model', default='anthropic/claude-3.5-sonnet',
-                       help='OpenRouter model to use (default: anthropic/claude-3.5-sonnet)')
+    parser.add_argument('--provider', default='openrouter',
+                       choices=['openrouter', 'ollama', 'bedrock'],
+                       help='LLM provider to use (default: openrouter)')
+    parser.add_argument('--model',
+                       help='Model to use (if not specified, uses provider defaults)')
     args = parser.parse_args()
 
     # Get required tokens from environment
     github_token = os.getenv('GITHUB_TOKEN')
-    openrouter_key = os.getenv('OPENROUTER_API_KEY')
-
     if not github_token:
         logger.error("GITHUB_TOKEN environment variable is not set")
         sys.exit(1)
 
-    if not openrouter_key:
-        logger.error("OPENROUTER_API_KEY environment variable is not set")
+    # Set the LLM provider
+    os.environ['LLM_PROVIDER'] = args.provider
+
+    # Validate provider-specific requirements
+    if args.provider == 'openrouter' and not os.getenv('OPENROUTER_API_KEY'):
+        logger.error("OPENROUTER_API_KEY environment variable is required for OpenRouter")
         sys.exit(1)
+    elif args.provider == 'bedrock':
+        if not os.getenv('AWS_ACCESS_KEY_ID') or not os.getenv('AWS_SECRET_ACCESS_KEY'):
+            logger.error("AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are required for Bedrock")
+            sys.exit(1)
 
     try:
         # Initialize and run analyzer
-        analyzer = PRDiffAnalyzer(github_token, openrouter_key, args.model)
+        analyzer = PRDiffAnalyzer(github_token, args.model)
+        if args.model:
+            logger.info(f"Using specified model: {args.model}")
+        else:
+            logger.info("Using provider's default model")
         analyzer.post_analysis(args.repo, args.pr)
     except Exception as e:
         logger.error(f"Error: {str(e)}")

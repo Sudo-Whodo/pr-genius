@@ -1,209 +1,190 @@
-# Using PR Genius GitHub Action
+# Usage Guide
 
-This guide explains how to use the PR Genius GitHub Action in your repositories for automated PR analysis.
+This guide explains how to use PR Genius in different environments and with different LLM providers.
 
-## Installation
+## Table of Contents
 
-1. Create `.github/workflows/pr-analysis.yml` in your repository:
+- [GitHub Action](#github-action)
+- [Local Testing](#local-testing)
+  - [Using test-local.sh](#using-test-localsh)
+  - [Using test-action-local.sh](#using-test-action-localsh)
+- [LLM Providers](#llm-providers)
+  - [OpenRouter](#openrouter)
+  - [AWS Bedrock](#aws-bedrock)
+  - [Ollama](#ollama)
+- [Customization](#customization)
+  - [Review Prompts](#review-prompts)
+  - [Models](#models)
+
+## GitHub Action
+
+To use PR Genius as a GitHub Action, add the following to your workflow:
 
 ```yaml
 name: PR Analysis
 on:
   pull_request:
     types: [opened, synchronize]
+    branches: [main]
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
-
+    name: Analyze PR
     steps:
-      - name: PR Diff Analysis
-        uses: sudo-whodo/pr-genius@v1
+      - name: PR Analysis
+        uses: sudo-whodo/pr-genius@main
         with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          provider: openrouter # or ollama, bedrock
+          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }} # if using OpenRouter
+          model: anthropic/claude-3-sonnet # optional
+          system_content: "Your custom review instructions" # optional
+          docs_system_content: "Your custom docs review instructions" # optional
 ```
-
-2. Set up required secrets:
-
-   a. Personal Access Token (PAT):
-
-   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-   - Generate new token with:
-     - `repo` scope (for repository access)
-     - `pull_requests` scope (for commenting on PRs)
-   - Add to repository secrets as `PAT_TOKEN`
-   - Note: GITHUB_TOKEN doesn't have sufficient permissions for PR comments
-
-   b. OpenRouter API Key:
-
-   - Sign up at [OpenRouter](https://openrouter.ai/)
-   - Create an API key
-   - Add to repository secrets as `OPENROUTER_API_KEY`
-
-## Configuration
-
-### Action Inputs
-
-| Input                 | Description                  | Required | Default                     |
-| --------------------- | ---------------------------- | -------- | --------------------------- |
-| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
-| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
-| `repository`          | Repository name (owner/repo) | No       | Current repository          |
-| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
-| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
-
-These inputs are mapped to environment variables inside the action:
-
-- Required inputs:
-  - `GITHUB_TOKEN`: From github_token input
-  - `OPENROUTER_API_KEY`: From openrouter_key input
-- Optional inputs:
-  - `REPOSITORY`: From repository input (defaults to current repository)
-  - `PR_NUMBER`: From pull_request_number input (defaults to current PR)
-  - `MODEL`: From model input (defaults to claude-3.5-sonnet)
-
-### Workflow Triggers
-
-Control when the action runs:
-
-```yaml
-on:
-  pull_request:
-    types: [opened, synchronize] # Run on PR open and updates
-    paths: # Optional: filter by file types
-      - "**.py"
-      - "**.js"
-      - "**.ts"
-```
-
-### Permissions
-
-Required workflow permissions:
-
-```yaml
-permissions:
-  pull-requests: write # For posting comments
-  contents: read # For accessing repository contents
-```
-
-Required PAT scopes:
-
-- `repo` - For repository access
-- `pull_requests` - For commenting on PRs
-
-### AI Models
-
-Available OpenRouter models:
-
-- `anthropic/claude-3.5-sonnet` (default)
-- `anthropic/claude-2`
-- Other models from [OpenRouter](https://openrouter.ai/docs#models)
-
-Example with custom model:
-
-```yaml
-- uses: sudo-whodo/pr-genius@v1
-  with:
-    github_token: ${{ secrets.PAT_TOKEN }}
-    openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
-    model: "anthropic/claude-2"
-```
-
-## Features
-
-### PR Analysis
-
-For each pull request, PR Genius:
-
-1. Analyzes changed files
-2. Calculates statistics
-3. Reviews code changes with AI
-4. Suggests documentation updates
-5. Posts a detailed comment
-
-### Analysis Output
-
-The PR comment includes:
-
-- File change statistics
-- AI-powered code review
-- Documentation suggestions
-- Notable changes
-- Detailed file analysis
-
-## Troubleshooting
-
-### Common Issues
-
-1. **403 Forbidden Error**
-
-   ```
-   Error: Resource not accessible by integration
-   ```
-
-   Solution:
-
-   - Use PAT_TOKEN instead of GITHUB_TOKEN
-   - Verify PAT has required scopes
-   - Check token expiration
-
-2. **Missing API Key**
-
-   ```
-   Error: OPENROUTER_API_KEY environment variable is not set
-   ```
-
-   Solution:
-
-   - Add OPENROUTER_API_KEY to repository secrets
-   - Check secret name spelling
-
-3. **Rate Limits**
-   - OpenRouter limits based on plan
-   - GitHub API rate limits
-     Solution:
-   - Check usage limits
-   - Consider upgrading plan
-
-### Security Best Practices
-
-1. Token Security:
-
-   - Never commit tokens in code
-   - Use repository secrets
-   - Rotate PAT regularly
-   - Limit token scopes
-
-2. Repository Settings:
-   - Enable branch protection
-   - Require PR reviews
-   - Set up required status checks
 
 ## Local Testing
 
-For testing locally:
+### Using test-local.sh
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/sudo-whodo/pr-genius.git
-cd pr-genius
-```
-
-2. Run the test script:
+For quick local testing with Docker:
 
 ```bash
-./test-local.sh "owner/repo" "pr_number" "model"
+# Test with OpenRouter
+export GITHUB_TOKEN=your_token
+export OPENROUTER_API_KEY=your_key
+./examples/test-local.sh --provider openrouter --pr 3
+
+# Test with Ollama
+export GITHUB_TOKEN=your_token
+./examples/test-local.sh --provider ollama --model deepseek-r1:1.5b --pr 3
 ```
 
-This builds and runs the container locally for testing.
+### Using test-action-local.sh
 
-## Support
+For testing the actual GitHub Action locally using act:
 
-- [Open an issue](https://github.com/sudo-whodo/pr-genius/issues)
-- [Contributing guidelines](../CONTRIBUTING.md)
-- [Release workflow](release-workflow.md)
+1. Install act:
+
+```bash
+brew install act  # macOS
+```
+
+2. Run the action:
+
+```bash
+# Test with OpenRouter
+export GITHUB_TOKEN=your_token
+export OPENROUTER_API_KEY=your_key
+./examples/test-action-local.sh --provider openrouter --pr 3
+
+# Test with custom review prompts
+export GITHUB_TOKEN=your_token
+export OPENROUTER_API_KEY=your_key
+export PR_REVIEW_SYSTEM_CONTENT="Focus on security issues"
+export PR_REVIEW_DOCS_SYSTEM_CONTENT="Focus on API documentation"
+./examples/test-action-local.sh --provider openrouter --pr 3
+
+# Test with Ollama
+export GITHUB_TOKEN=your_token
+./examples/test-action-local.sh --provider ollama --model deepseek-r1:1.5b --pr 3
+
+# Test with AWS Bedrock
+export GITHUB_TOKEN=your_token
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+./examples/test-action-local.sh --provider bedrock --model anthropic.claude-3-sonnet --pr 3
+```
+
+The script will:
+
+- Create a temporary workflow file
+- Set up secrets securely
+- Run the action in a Docker container
+- Clean up temporary files
+
+Note for M-series Mac users: The script automatically handles architecture differences by using `--container-architecture linux/amd64`.
+
+## LLM Providers
+
+### OpenRouter
+
+OpenRouter provides access to various LLMs through a single API:
+
+1. Get an API key from [OpenRouter](https://openrouter.ai/)
+2. Set the environment variable:
+
+```bash
+export OPENROUTER_API_KEY=your_key
+```
+
+### AWS Bedrock
+
+For AWS Bedrock:
+
+1. Set up AWS credentials:
+
+```bash
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+```
+
+2. Available models:
+
+- anthropic.claude-3-sonnet
+- anthropic.claude-3-haiku
+- anthropic.claude-2.1
+- anthropic.claude-2.0
+
+### Ollama
+
+For local LLM inference using Ollama:
+
+1. Install Ollama from [ollama.ai](https://ollama.ai)
+2. Pull a model:
+
+```bash
+ollama pull deepseek-r1:1.5b
+```
+
+3. Run with Ollama provider:
+
+```bash
+./examples/test-local.sh --provider ollama --model deepseek-r1:1.5b
+```
+
+## Customization
+
+### Review Prompts
+
+You can customize the review prompts using environment variables:
+
+```bash
+# Customize code review focus
+export PR_REVIEW_SYSTEM_CONTENT="Focus on:
+1. Security vulnerabilities
+2. Performance implications
+3. Error handling
+4. Testing coverage"
+
+# Customize documentation review focus
+export PR_REVIEW_DOCS_SYSTEM_CONTENT="Focus on:
+1. API documentation
+2. Configuration examples
+3. Deployment instructions
+4. Breaking changes"
+```
+
+### Models
+
+Each provider has different available models:
+
+- OpenRouter: anthropic/claude-3-sonnet, anthropic/claude-3-haiku, etc.
+- AWS Bedrock: anthropic.claude-3-sonnet, anthropic.claude-2.1, etc.
+- Ollama: deepseek-r1:1.5b, llama2, codellama, etc.
+
+Specify a model using the `--model` flag:
+
+```bash
+./examples/test-local.sh --provider openrouter --model anthropic/claude-3-sonnet
+```

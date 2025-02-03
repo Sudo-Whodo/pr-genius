@@ -1,40 +1,87 @@
 name: PR Analysis
+
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Specify paths to analyze
-    # paths:
-    #   - '**.py'
-    #   - '**.js'
-    #   - '**.ts'
+    branches: [main]
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    permissions:
-      # Required for PR comments
-      pull-requests: write
-      # Required for accessing repository contents
-      contents: read
-
+    name: Analyze PR
     steps:
-      - name: PR Diff Analysis
-        uses: sudo-whodo/pr-genius@v1
+      - name: PR Analysis (OpenRouter)
+        uses: sudo-whodo/pr-genius@main
         with:
-          # Required: Personal Access Token with PR write permissions
-          # Note: GITHUB_TOKEN doesn't have sufficient permissions for PR comments
-          # Create a PAT with 'repo' and 'pull_requests' scopes
-          github_token: ${{ secrets.PAT_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          provider: openrouter
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          # Optional: Custom review prompts
+          system_content: |
+            You are a senior software engineer reviewing a pull request. Focus on:
+            1. Code quality and best practices
+            2. Performance implications
+            3. Error handling
+            4. Testing coverage
+          docs_system_content: |
+            Review documentation changes with focus on:
+            1. Technical accuracy
+            2. Completeness
+            3. Examples and usage
+            4. Version compatibility
 
-          # Required: Your OpenRouter API key
-          # Get one at: https://openrouter.ai/
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+      # Example: Using Ollama
+      - name: PR Analysis (Ollama)
+        uses: sudo-whodo/pr-genius@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          provider: ollama
+          ollama_base_url: http://your-ollama-server:11434
+          model: deepseek-r1:1.5b
 
-          # Optional: Repository name (default: current repository)
-          # repository: "owner/repo"
-
-          # Optional: PR number (default: current PR number)
-          # pull_request_number: 123
-
-          # Optional: OpenRouter model to use
-          # model: "anthropic/claude-2"
+      # Example: Using AWS Bedrock
+      - name: PR Analysis (Bedrock)
+        uses: sudo-whodo/pr-genius@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          provider: bedrock
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          model: anthropic.claude-3-sonnet-20240229-v1:0
+# Full Configuration Options:
+#
+# github_token: (required)
+#   GitHub token for API access
+#
+# provider: (optional, default: openrouter)
+#   LLM provider to use: openrouter, ollama, or bedrock
+#
+# model: (optional)
+#   Model to use. Defaults per provider:
+#   - OpenRouter: anthropic/claude-3.5-sonnet:beta
+#   - Bedrock: anthropic.claude-3-sonnet-20240229-v1:0
+#   - Ollama: deepseek-r1:1.5b
+#
+# system_content: (optional)
+#   Custom instructions for code review
+#
+# docs_system_content: (optional)
+#   Custom instructions for documentation review
+#
+# Provider-specific options:
+#
+# OpenRouter:
+#   openrouter_api_key: (required for OpenRouter)
+#     API key from openrouter.ai
+#
+# Ollama:
+#   ollama_base_url: (optional)
+#     URL of Ollama server, default: http://localhost:11434
+#
+# AWS Bedrock:
+#   aws_access_key_id: (required for Bedrock)
+#     AWS access key
+#   aws_secret_access_key: (required for Bedrock)
+#     AWS secret key
+#   aws_region: (optional)
+#     AWS region, default: us-east-1

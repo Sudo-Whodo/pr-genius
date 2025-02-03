@@ -1,197 +1,120 @@
-# PR Genius 🤖
+# PR Genius
 
-<div align="center">
+An AI-powered pull request analyzer that provides detailed code reviews and documentation suggestions.
 
-[![Build Status](https://github.com/sudo-whodo/pr-genius/actions/workflows/release.yml/badge.svg)](https://github.com/sudo-whodo/pr-genius/actions)
-[![Version](https://img.shields.io/github/v/release/sudo-whodo/pr-genius?include_prereleases)](https://github.com/sudo-whodo/pr-genius/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+## Features
 
-AI-powered pull request analysis tool that provides comprehensive code reviews, impact analysis, and documentation updates.
+- Automated PR analysis with multiple LLM providers (OpenRouter, Ollama, AWS Bedrock)
+- Detailed code review with impact assessment and improvement suggestions
+- Documentation update recommendations
+- Support for customizable review prompts
+- Docker-based testing environment
 
-[Features](#features) •
-[Quick Start](#quick-start) •
-[Documentation](#documentation) •
-[Contributing](#contributing)
+## Installation
 
-</div>
-
-## ✨ Features
-
-- 🔍 Analyzes file changes in pull requests
-- 📊 Provides detailed statistics (files changed, lines added/deleted)
-- 🧠 Uses OpenRouter AI models (default: Claude 3.5 Sonnet) to:
-  - Analyze code changes and their impact
-  - Identify potential risks and concerns
-  - Suggest improvements
-  - Generate documentation updates
-- 💬 Posts formatted summaries as PR comments
-- 📚 Maintains documentation requirements
-- 🔐 Supports authentication via GitHub token
-- 🚀 Available as a GitHub Action
-
-## 🚀 Quick Start
-
-1. Create `.github/workflows/pr-analysis.yml` in your repository:
-
-```yaml
-name: PR Analysis
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
-
-    steps:
-      - name: PR Diff Analysis
-        uses: sudo-whodo/pr-genius@v1
-        with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          openrouter_key: ${{ secrets.OPENROUTER_API_KEY }}
+```bash
+git clone https://github.com/sudo-whodo/pr-genius.git
+cd pr-genius
+pip install -r pr-diff-bot/requirements.txt
 ```
 
-2. Add required secrets to your repository:
+## Usage
 
-   a. Personal Access Token (PAT):
+### Basic Usage
 
-   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-   - Generate new token with:
-     - `repo` scope (for repository access)
-     - `pull_requests` scope (for commenting on PRs)
-   - Add to repository secrets as `PAT_TOKEN`
+```bash
+# Using OpenRouter (default)
+export GITHUB_TOKEN=your_token
+export OPENROUTER_API_KEY=your_key
+./test-local.sh 123  # Analyze PR #123
 
-   b. OpenRouter API Key:
+# Using Ollama
+./test-local.sh --provider ollama --dry-run 123
 
-   - Get your API key from https://openrouter.ai/
-   - Add to repository secrets as `OPENROUTER_API_KEY`
-
-That's it! PR Genius will now analyze your pull requests automatically.
-
-## 📚 Documentation
-
-- [Usage Guide](docs/usage-guide.md) - Detailed setup and configuration
-- [Example Configurations](examples/README.md) - Ready-to-use workflow examples
-- [Release Process](docs/release-workflow.md) - Understanding our versioning
-
-## 🔧 Configuration
-
-### Action Inputs
-
-| Input                 | Description                  | Required | Default                     |
-| --------------------- | ---------------------------- | -------- | --------------------------- |
-| `github_token`        | Personal Access Token (PAT)  | Yes      | -                           |
-| `openrouter_key`      | OpenRouter API key           | Yes      | -                           |
-| `repository`          | Repository name (owner/repo) | No       | Current repository          |
-| `pull_request_number` | PR number to analyze         | No       | Current PR number           |
-| `model`               | OpenRouter model to use      | No       | anthropic/claude-3.5-sonnet |
-
-These inputs are mapped to environment variables inside the action:
-
-- Required inputs:
-  - `GITHUB_TOKEN`: From github_token input
-  - `OPENROUTER_API_KEY`: From openrouter_key input
-- Optional inputs:
-  - `REPOSITORY`: From repository input (defaults to current repository)
-  - `PR_NUMBER`: From pull_request_number input (defaults to current PR)
-  - `MODEL`: From model input (defaults to claude-3.5-sonnet)
-
-### Required Permissions
-
-The workflow needs these permissions:
-
-```yaml
-permissions:
-  pull-requests: write # For posting comments
-  contents: read # For accessing repository contents
+# Using AWS Bedrock
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+./test-local.sh --provider bedrock 123
 ```
 
-Additionally, your PAT_TOKEN must have:
+### Customizing Review Prompts
 
-- `repo` scope for repository access
-- `pull_requests` scope for commenting on PRs
+You can customize the review focus by setting environment variables:
 
-## 📊 Example Output
+```bash
+# Customize code review focus (e.g., security)
+export PR_REVIEW_SYSTEM_CONTENT='You are a security-focused code reviewer. Focus on:
+1. Security vulnerabilities
+2. Authentication issues
+3. Data validation
+4. Error handling
+Provide detailed security recommendations.'
 
-PR Genius adds a comment to your pull request with:
+# Customize documentation review focus (e.g., API docs)
+export PR_REVIEW_DOCS_SYSTEM_CONTENT='Focus on API documentation:
+1. API endpoint changes
+2. Request/response formats
+3. Authentication requirements
+4. Rate limits and quotas
+Ensure all API changes are well-documented.'
 
-<details>
-<summary>Click to see example output</summary>
-
-```markdown
-## 🤖 Pull Request Analysis
-
-### 📊 Statistics
-
-- Files changed: 3
-- Lines added: 150
-- Lines deleted: 50
-
-### 🧠 AI Code Review
-
-Analysis by anthropic/claude-3.5-sonnet:
-[Detailed code review with impact assessment, risks, and suggestions]
-
-### 📚 Documentation Updates Needed
-
-[Documentation suggestions based on changes]
-
-### 🔍 Notable Changes
-
-- Major changes in src/main.py: +100/-30 lines
-- New file: tests/test_feature.py
+# Run with custom prompts
+./test-local.sh --dry-run 123
 ```
 
-</details>
+### Using Ollama
 
-## ⚠️ Troubleshooting
+PR Genius supports using Ollama as an LLM provider. When using Ollama:
 
-1. **Permission Issues (403 Forbidden)**
+1. Local Development:
 
-   - Ensure you're using PAT_TOKEN, not GITHUB_TOKEN
-   - Verify PAT has required scopes (repo, pull_requests)
-   - Check that the token hasn't expired
+```bash
+# Start Ollama locally
+ollama run deepseek-r1:1.5b
 
-2. **Missing OpenRouter API Key**
+# Run PR Genius with local Ollama
+./test-local.sh --provider ollama 123
+```
 
-   - Ensure you've added the `OPENROUTER_API_KEY` to your repository secrets
-   - Check that the secret name matches exactly
+2. Remote Ollama:
 
-3. **Rate Limits**
+```bash
+# Use remote Ollama instance
+export OLLAMA_BASE_URL=http://your-ollama-server:11434
+./test-local.sh --provider ollama 123
+```
 
-   - OpenRouter has rate limits based on your plan
-   - GitHub API also has rate limits
+3. Docker Environment:
 
-4. **Token Security**
-   - Never commit tokens directly in workflow files
-   - Always use repository secrets
-   - Regularly rotate your PAT for security
+```bash
+# The test script automatically:
+# - Creates a Docker network
+# - Starts Ollama container
+# - Pulls required model
+# - Sets up proper networking
+./test-local.sh --provider ollama --dry-run 123
+```
 
-## 🤝 Contributing
+## Environment Variables
 
-We welcome contributions! Here's how you can help:
+| Variable                        | Description                     | Default                 |
+| ------------------------------- | ------------------------------- | ----------------------- |
+| `GITHUB_TOKEN`                  | GitHub Personal Access Token    | Required                |
+| `OPENROUTER_API_KEY`            | OpenRouter API Key              | Required for OpenRouter |
+| `AWS_ACCESS_KEY_ID`             | AWS Access Key                  | Required for Bedrock    |
+| `AWS_SECRET_ACCESS_KEY`         | AWS Secret Key                  | Required for Bedrock    |
+| `OLLAMA_BASE_URL`               | Ollama API URL                  | http://localhost:11434  |
+| `PR_REVIEW_SYSTEM_CONTENT`      | Custom code review instructions | Built-in prompt         |
+| `PR_REVIEW_DOCS_SYSTEM_CONTENT` | Custom docs review instructions | Built-in prompt         |
+
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes using conventional commits:
-   - `feat: add new feature`
-   - `fix: resolve issue`
-   - `docs: update documentation`
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -am 'feat: add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Please read our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-## 📋 Requirements
-
-- Python 3.8+
-- GitHub Personal Access Token
-- OpenRouter API Key
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

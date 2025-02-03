@@ -1,189 +1,140 @@
 # Release Workflow
 
-This document explains our release process and versioning system.
+This document outlines the process for releasing new versions of PR Genius.
 
-## Overview
+## Pre-release Testing
 
-We use semantic versioning through conventional commits to automate our release process. When changes are pushed to main, our release workflow:
+1. Run the test suite:
 
-1. Detects version-worthy changes
-2. Creates a release PR
-3. Updates version numbers
-4. Creates git tags
-5. Builds and publishes Docker images
-
-## Version Types
-
-### 1. Patch Version (0.1.0 -> 0.1.1)
-
-Triggered by:
-
-```
-fix: bug fix description
+```bash
+python -m pytest
 ```
 
-or
+2. Test with different LLM providers using Docker:
 
-```
-perf: performance improvement description
-```
+```bash
+# Test with OpenRouter
+./examples/test-local.sh --provider openrouter --pr 3
 
-### 2. Minor Version (0.1.0 -> 0.2.0)
+# Test with Ollama
+./examples/test-local.sh --provider ollama --model deepseek-r1:1.5b --pr 3
 
-Triggered by:
-
-```
-feat: new feature description
-```
-
-### 3. Major Version (0.1.0 -> 1.0.0)
-
-Triggered by:
-
-```
-feat!: breaking change description
+# Test with AWS Bedrock
+./examples/test-local.sh --provider bedrock --model anthropic.claude-3-sonnet --pr 3
 ```
 
-or
+3. Test the GitHub Action locally using act:
 
-```
-feat: new feature
+```bash
+# Test with OpenRouter
+./examples/test-action-local.sh --provider openrouter --pr 3
 
-BREAKING CHANGE: description of breaking changes
+# Test with custom prompts
+export PR_REVIEW_SYSTEM_CONTENT="Focus on security"
+./examples/test-action-local.sh --provider openrouter --pr 3
+
+# Test with Ollama
+./examples/test-action-local.sh --provider ollama --model deepseek-r1:1.5b --pr 3
 ```
 
 ## Release Process
 
-1. **Change Detection**
+1. Update version in pyproject.toml:
 
-   - Workflow runs on push to main
-   - Analyzes commit messages since last release
-   - Determines version bump type
+```toml
+[tool.poetry]
+name = "pr-genius"
+version = "1.2.3"  # New version here
+```
 
-2. **Release PR Creation**
+2. Update CHANGELOG.md with the new version and changes:
 
-   - Creates branch `release-x.y.z`
-   - Updates version in `__init__.py`
-   - Creates PR with changelog
+```markdown
+## [1.2.3] - YYYY-MM-DD
 
-3. **After PR Merge**
-   - Creates git tag
-   - Creates GitHub release
-   - Builds Docker image
-   - Pushes to GitHub Container Registry
+### Added
 
-## Docker Images
+- New feature X
+- New feature Y
 
-Images are published to GitHub Container Registry:
+### Changed
 
-- `ghcr.io/sudo-whodo/pr-genius:latest`
-- `ghcr.io/sudo-whodo/pr-genius:x.y.z`
+- Improvement to Z
+- Update to A
 
-## Workflow Files
+### Fixed
 
-### 1. Release Workflow
+- Bug fix for B
+- Issue with C
+```
 
-`.github/workflows/release.yml` handles:
+3. Create a new release branch:
 
-- Version detection
-- PR creation
-- Tag creation
-- Docker builds
+```bash
+git checkout -b release/v1.2.3
+```
 
-### 2. PR Analysis
+4. Commit changes:
 
-`.github/workflows/pr-analysis.yml` handles:
+```bash
+git add pyproject.toml CHANGELOG.md
+git commit -m "chore(release): prepare v1.2.3"
+```
 
-- PR analysis
-- AI code review
-- Comment posting
+5. Create a pull request and wait for CI checks
 
-## Dependencies
+6. After merging, tag the release:
 
-### 1. Required Secrets
+```bash
+git tag -a v1.2.3 -m "Release v1.2.3"
+git push origin v1.2.3
+```
 
-- `PAT_TOKEN`: GitHub Personal Access Token
-- `OPENROUTER_API_KEY`: OpenRouter API key
+7. Create a GitHub release:
 
-### 2. Permissions
+- Go to Releases > Draft a new release
+- Choose the tag
+- Copy changelog entries
+- Publish release
 
-The PAT_TOKEN needs:
+## Post-release
 
-- `contents: write` for releases
-- `packages: write` for Docker images
-- `pull-requests: write` for PR creation
+1. Verify the GitHub Action works with the new release:
 
-## Best Practices
+```yaml
+- uses: sudo-whodo/pr-genius@v1.2.3
+```
 
-1. **Commit Messages**
+2. Update documentation if needed:
 
-   - Use conventional commit format
-   - Include scope when relevant
-   - Provide clear descriptions
+- README.md
+- docs/usage-guide.md
+- Example workflows
 
-2. **Pull Requests**
+## Hotfix Process
 
-   - Use provided PR template
-   - Include comprehensive description
-   - Link related issues
+For urgent fixes to a released version:
 
-3. **Version Bumps**
-   - Consider impact of changes
-   - Use appropriate commit prefix
-   - Document breaking changes
+1. Create a hotfix branch from the tag:
 
-## Troubleshooting
+```bash
+git checkout -b hotfix/v1.2.4 v1.2.3
+```
 
-### Common Issues
+2. Make the fix and update version/changelog
 
-1. **Version Not Incrementing**
+3. Follow steps 4-7 from the release process
 
-   - Check commit message format
-   - Ensure changes are in tracked files
-   - Verify workflow permissions
+## Version Numbering
 
-2. **Docker Build Fails**
+We follow semantic versioning:
 
-   - Check Dockerfile syntax
-   - Verify dependencies
-   - Check registry permissions
+- MAJOR version for incompatible API changes
+- MINOR version for new features in a backwards compatible manner
+- PATCH version for backwards compatible bug fixes
 
-3. **Release PR Issues**
-   - Verify PAT_TOKEN permissions
-   - Check branch protection rules
-   - Review workflow logs
+Example: 1.2.3
 
-## Manual Release
-
-If needed, you can trigger a release manually:
-
-1. Via GitHub UI:
-
-   - Go to Actions
-   - Select Release workflow
-   - Click "Run workflow"
-
-2. Via git tag:
-   ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
-   ```
-
-## Maintenance
-
-1. **Regular Tasks**
-
-   - Review and update dependencies
-   - Check workflow performance
-   - Monitor Docker image size
-
-2. **Security**
-
-   - Rotate PAT_TOKEN regularly
-   - Review workflow permissions
-   - Update base images
-
-3. **Documentation**
-   - Keep changelog updated
-   - Document breaking changes
-   - Update version requirements
+- 1 = Major version
+- 2 = Minor version
+- 3 = Patch version

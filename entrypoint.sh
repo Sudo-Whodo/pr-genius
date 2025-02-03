@@ -9,16 +9,45 @@ if [ -z "$GITHUB_TOKEN" ]; then
     exit 1
 fi
 
-if [ -z "$OPENROUTER_API_KEY" ]; then
-    echo "Error: OPENROUTER_API_KEY environment variable is not set"
-    exit 1
-fi
+# Parse named arguments
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --repo) REPO="$2"; shift 2;;
+        --pr) PR="$2"; shift 2;;
+        --provider) PROVIDER="$2"; shift 2;;
+        --model) MODEL="$2"; shift 2;;
+        *) echo "Unknown parameter: $1"; exit 1;;
+    esac
+done
 
-# Use environment variables if available, otherwise use arguments
-REPO=${REPOSITORY:-"$1"}
-PR=${PR_NUMBER:-"$2"}
-MODEL=${MODEL:-"$4"}
+# Use environment variables as fallbacks
+REPO=${REPO:-$REPOSITORY}
+PR=${PR:-$PR_NUMBER}
+PROVIDER=${PROVIDER:-${LLM_PROVIDER:-"openrouter"}}
+
+# Check provider-specific requirements
+case "$PROVIDER" in
+    "openrouter")
+        if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "Error: OPENROUTER_API_KEY environment variable is required for OpenRouter provider"
+            exit 1
+        fi
+        ;;
+    "bedrock")
+        if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "Error: AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables are required for Bedrock provider"
+            exit 1
+        fi
+        ;;
+    "ollama")
+        echo "Warning: Using Ollama provider. Ensure Ollama is running in the container environment."
+        ;;
+    *)
+        echo "Error: Invalid provider '$PROVIDER'. Must be one of: openrouter, ollama, bedrock"
+        exit 1
+        ;;
+esac
 
 # Run the PR diff analyzer
-echo "Running analysis for repository: $REPO, PR: $PR, Model: $MODEL"
-python /app/pr_diff_analyzer.py --repo "$REPO" --pr "$PR" --model "$MODEL"
+echo "Running analysis for repository: $REPO, PR: $PR, Provider: $PROVIDER, Model: $MODEL"
+python /app/pr_diff_analyzer.py --repo "$REPO" --pr "$PR" --provider "$PROVIDER" --model "$MODEL"

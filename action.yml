@@ -1,14 +1,40 @@
 name: "PR Diff Analyzer"
-description: "Analyzes pull request changes and provides AI-powered code review comments"
+description: "Analyzes pull request changes and provides AI-powered code review comments with customizable prompts"
 author: "PR Diff Bot"
 
 inputs:
   github_token:
-    description: "GitHub token for API access"
+    description: "GitHub Personal Access Token (PAT) with repo and pull_requests scopes. Note: secrets.GITHUB_TOKEN will not work, you must create a PAT"
     required: true
-  openrouter_key:
-    description: "OpenRouter API key for AI analysis"
-    required: true
+  provider:
+    description: "LLM provider to use (openrouter, ollama, or bedrock)"
+    required: false
+    default: "openrouter"
+  model:
+    description: "Model to use for analysis (provider-specific)"
+    required: false
+  system_content:
+    description: "Custom instructions for code review"
+    required: false
+  docs_system_content:
+    description: "Custom instructions for documentation review"
+    required: false
+  openrouter_api_key:
+    description: "OpenRouter API key (required if using openrouter provider)"
+    required: false
+  aws_access_key_id:
+    description: "AWS Access Key ID (required if using bedrock provider)"
+    required: false
+  aws_secret_access_key:
+    description: "AWS Secret Access Key (required if using bedrock provider)"
+    required: false
+  aws_region:
+    description: "AWS region for Bedrock"
+    required: false
+    default: "us-east-1"
+  ollama_base_url:
+    description: "Ollama API URL (optional, default: http://localhost:11434)"
+    required: false
   repository:
     description: "Repository name in format owner/repo"
     required: false
@@ -17,22 +43,27 @@ inputs:
     description: "Pull request number to analyze"
     required: false
     default: ${{ github.event.pull_request.number }}
-  model:
-    description: "OpenRouter model to use for analysis"
-    required: false
-    default: "anthropic/claude-3.5-sonnet"
 
 runs:
   using: "docker"
   image: "Dockerfile"
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
-    OPENROUTER_API_KEY: ${{ inputs.openrouter_key }}
+    LLM_PROVIDER: ${{ inputs.provider }}
+    MODEL: ${{ inputs.model }}
+    PR_REVIEW_SYSTEM_CONTENT: ${{ inputs.system_content }}
+    PR_REVIEW_DOCS_SYSTEM_CONTENT: ${{ inputs.docs_system_content }}
+    OPENROUTER_API_KEY: ${{ inputs.openrouter_api_key }}
+    AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+    AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+    AWS_REGION: ${{ inputs.aws_region }}
+    OLLAMA_BASE_URL: ${{ inputs.ollama_base_url }}
     REPOSITORY: ${{ inputs.repository }}
     PR_NUMBER: ${{ inputs.pull_request_number }}
-    MODEL: ${{ inputs.model }}
   args:
     - ${{ inputs.repository }}
     - ${{ inputs.pull_request_number }}
-    - "--model"
-    - ${{ inputs.model }}
+    - "--provider"
+    - ${{ inputs.provider }}
+    - ${{ inputs.model != '' && '--model' || '' }}
+    - ${{ inputs.model != '' && inputs.model || '' }}
