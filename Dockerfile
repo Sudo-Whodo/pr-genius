@@ -9,16 +9,13 @@ RUN apt-get update && \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY pr-diff-bot/requirements.txt .
+# Copy source code
+COPY . /app/
+
+# Install package and dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# Create directories
-RUN mkdir -p /app/examples
-
-# Copy application code
-COPY pr-diff-bot/ .
+    pip install --no-cache-dir -r pr_diff_bot/requirements.txt && \
+    pip install -e .
 COPY entrypoint.sh .
 
 # Make entrypoint executable
