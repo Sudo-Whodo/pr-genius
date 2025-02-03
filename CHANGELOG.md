@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.3.4 (2025-02-03)
+
+### Bug Fixes
+
+- Fixing release logic
+  ([`615f0bc`](https://github.com/sudo-whodo/pr-genius/commit/615f0bca07f9aae08aa5c9f3927db5d45a2a9c90))
+
+
 ## v0.3.3 (2025-02-03)
 
 ### Bug Fixes
