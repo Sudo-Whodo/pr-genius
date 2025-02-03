@@ -1,6 +1,8 @@
 name: Release
 on:
   workflow_dispatch:
+  pull_request:
+    types: [closed]
   push:
     branches:
       - main
@@ -11,11 +13,28 @@ permissions:
   packages: write
 
 jobs:
-  release:
+  check-release:
     # Skip if commit is a release commit
     if: ${{ !contains(github.event.head_commit.message, 'chore(release):') }}
     runs-on: ubuntu-latest
-    concurrency: release
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: Check if release is needed
+        id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+  create-release-pr:
+    needs: check-release
+    if: needs.check-release.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,11 +57,83 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      - name: Semantic Release
+      - name: Create Release PR
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          semantic-release version
+          # Get next version
+          NEW_VERSION=$(semantic-release version --print)
+          if [ -z "$NEW_VERSION" ]; then
+            echo "No version bump needed"
+            exit 0
+          fi
+
+          # Create release branch
+          BRANCH="release-$NEW_VERSION"
+          git checkout -b $BRANCH
+
+          # Update version and create changelog
+          semantic-release version --no-commit
+
+          # Commit changes
+          git add .
+          git commit -m "chore(release): $NEW_VERSION"
+          git push -f origin $BRANCH
+
+          # Create PR
+          gh pr create \
+            --title "chore(release): $NEW_VERSION" \
+            --body "Automated release PR to update version to $NEW_VERSION" \
+            --base main \
+            --head $BRANCH
+
+  release:
+    # Only run when a release PR is merged
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release-')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-semantic-release
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Get version from branch name
+        id: get_version
+        run: |
+          VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          # Create and push tag
+          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
+          git push origin "v${{ steps.get_version.outputs.VERSION }}"
+
+          # Publish release
           semantic-release publish
 
   publish:
@@ -69,13 +160,6 @@ jobs:
           REPO="${{ github.repository }}"
           echo "name=${REPO,,}" >> $GITHUB_OUTPUT
 
-      - name: Get latest version tag
-        id: version
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          VERSION=${VERSION#v}  # Remove 'v' prefix
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -83,4 +167,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ steps.repo.outputs.name }}:latest
-            ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ steps.repo.outputs.name }}:${{ needs.release.outputs.version }}
