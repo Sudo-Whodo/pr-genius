@@ -1,8 +1,6 @@
 name: Release
 on:
   workflow_dispatch:
-  pull_request:
-    types: [closed]
   push:
     branches:
       - main
@@ -13,14 +11,16 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    # Skip build on PR close if it wasn't merged
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+  release:
+    # Skip if commit is a release commit
+    if: ${{ !contains(github.event.head_commit.message, 'chore(release):') }}
     runs-on: ubuntu-latest
-    outputs:
-      build_success: ${{ steps.set_output.outputs.success }}
+    concurrency: release
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,238 +31,27 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r pr-diff-bot/requirements.txt
-
-      - name: Build Docker image
-        run: docker build -t pr-diff-analyzer .
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      - name: Set build output
-        id: set_output
-        run: echo "success=true" >> $GITHUB_OUTPUT
-
-  check-release:
-    needs: build
-    # Only run on push to main that's not a release commit
-    if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):')
-    runs-on: ubuntu-latest
-    outputs:
-      new_version: ${{ steps.version.outputs.NEW_VERSION }}
-      should_release: ${{ steps.check.outputs.should_release }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check if release is needed
-        id: check
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "push" ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_release=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Set up Python
-        if: steps.check.outputs.should_release == 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.8"
-
-      - name: Install dependencies
-        if: steps.check.outputs.should_release == 'true'
-        run: |
-          python -m pip install --upgrade pip
           pip install python-semantic-release
-
-      - name: Get Next Version
-        if: steps.check.outputs.should_release == 'true'
-        id: version
-        run: |
-          # Get current version from __init__.py
-          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' pr-diff-bot/__init__.py)
-          echo "Current version: $CURRENT_VERSION"
-
-          # Get commit messages since last tag
-          COMMITS=$(git log --format=%B $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD)
-          echo "Commits since last tag:"
-          echo "$COMMITS"
-
-          # Check for breaking changes first
-          if echo "$COMMITS" | grep -q "BREAKING CHANGE:"; then
-            # Calculate major version
-            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
-            NEW_VERSION="$((major + 1)).0.0"
-            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          # Then check for features
-          elif echo "$COMMITS" | grep -q "^feat:"; then
-            # Calculate minor version
-            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
-            NEW_VERSION="$major.$((minor + 1)).0"
-            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          # Finally check for fixes
-          elif echo "$COMMITS" | grep -q "^fix:"; then
-            # Calculate patch version
-            IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
-            NEW_VERSION="$major.$minor.$((patch + 1))"
-            echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          fi
-
-  create-release-pr:
-    needs: [build, check-release]
-    if: needs.check-release.outputs.should_release == 'true' && needs.check-release.outputs.new_version != ''
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Configure Git
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-      - name: Create Release Branch and Update Version
+      - name: Semantic Release
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          BRANCH="release-${{ needs.check-release.outputs.new_version }}"
-          git checkout -b $BRANCH
+          semantic-release version
+          semantic-release publish
 
-          # Update version in __init__.py
-          sed -i "s/__version__ = .*/__version__ = \"${{ needs.check-release.outputs.new_version }}\"/" pr-diff-bot/__init__.py
-
-          git add .
-          git commit -m "chore(release): ${{ needs.check-release.outputs.new_version }}"
-          git push -f origin $BRANCH
-
-      - name: Get changes since last tag
-        id: changes
-        run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$PREVIOUS_TAG" ]; then
-            # First release - get all commits
-            CHANGES=$(git log --format="* %s" --reverse)
-          else
-            # Get commits since last tag
-            CHANGES=$(git log --format="* %s" --reverse ${PREVIOUS_TAG}..HEAD)
-          fi
-          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          gh pr create \
-            --title "chore(release): ${{ needs.check-release.outputs.new_version }}" \
-            --body "Automated release PR
-
-            This PR was automatically created by the release workflow to update the version to ${{ needs.check-release.outputs.new_version }}.
-
-            Changes included in this release:
-            ${{ steps.changes.outputs.CHANGES }}" \
-            --base main \
-            --head "release-${{ needs.check-release.outputs.new_version }}"
-
-  tag-and-release:
-    # Only run when a release PR is merged (not just closed)
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.action == 'closed' &&
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release-')
+  publish:
+    needs: release
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-
-      - name: Get version from branch name
-        id: get_version
-        run: |
-          VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Get lowercase repository name
-        id: repo
-        run: |
-          REPO="${{ github.repository }}"
-          echo "name=${REPO,,}" >> $GITHUB_OUTPUT
-
-      - name: Create and push tag
-        run: |
-          git tag -a "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
-          git push origin "v${{ steps.get_version.outputs.VERSION }}"
-
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          # Get changes since last release
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "v${{ steps.get_version.outputs.VERSION }}^" 2>/dev/null || echo "")
-          if [ -z "$PREVIOUS_TAG" ]; then
-            # First release - get all commits
-            CHANGES=$(git log --format="* %s" --reverse)
-          else
-            # Get commits between tags
-            CHANGES=$(git log --format="* %s" --reverse ${PREVIOUS_TAG}..v${{ steps.get_version.outputs.VERSION }})
-          fi
-
-          # Create GitHub release
-          gh release create "v${{ steps.get_version.outputs.VERSION }}" \
-            --title "Release v${{ steps.get_version.outputs.VERSION }}" \
-            --notes "## Installation
-
-            Multi-platform images available for AMD64 and ARM64.
-
-            Default pull (will select appropriate platform):
-            \`\`\`bash
-            docker pull ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
-            \`\`\`
-
-            Platform-specific pulls:
-            \`\`\`bash
-            # For AMD64 (x86_64)
-            docker pull --platform linux/amd64 ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
-
-            # For ARM64
-            docker pull --platform linux/arm64 ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.get_version.outputs.VERSION }}
-            \`\`\`
-
-            ## Changes in this release:
-
-            ${CHANGES}"
-
-  publish:
-    needs: [build, tag-and-release]
-    if: |
-      needs.build.outputs.build_success == 'true' &&
-      needs.tag-and-release.outputs.version != ''
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: "v${{ needs.tag-and-release.outputs.version }}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -280,18 +69,18 @@ jobs:
           REPO="${{ github.repository }}"
           echo "name=${REPO,,}" >> $GITHUB_OUTPUT
 
+      - name: Get latest version tag
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0)
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           push: true
           platforms: linux/amd64,linux/arm64
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
           tags: |
             ghcr.io/${{ steps.repo.outputs.name }}:latest
-            ghcr.io/${{ steps.repo.outputs.name }}:${{ needs.tag-and-release.outputs.version }}
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+            ghcr.io/${{ steps.repo.outputs.name }}:${{ steps.version.outputs.VERSION }}
