@@ -1,5 +1,5 @@
 [tool.semantic_release]
-version_variable = "pr-diff-bot/__init__.py:__version__"
+version_variable = ["pr-diff-bot/__init__.py:__version__"]
 branch = "main"
 upload_to_pypi = false
 upload_to_release = true
