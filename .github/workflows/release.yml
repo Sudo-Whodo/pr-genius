@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-semantic-release
+          pip install python-semantic-release==7.34.6
 
       - name: Configure Git
         run: |
@@ -112,7 +112,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-semantic-release
+          pip install python-semantic-release==7.34.6
 
       - name: Configure Git
         run: |
@@ -125,10 +125,25 @@ jobs:
           VERSION=$(echo "${{ github.event.pull_request.head.ref }}" | sed 's/release-//')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Publish Release
+      - name: Check and Create Release
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: semantic-release publish
+        run: |
+          # Check if release already exists
+          if gh release view "v${{ steps.get_version.outputs.VERSION }}" &>/dev/null; then
+            echo "Release v${{ steps.get_version.outputs.VERSION }} already exists. Skipping release creation."
+            exit 0
+          fi
+
+          # Create and push tag
+          git tag -f "v${{ steps.get_version.outputs.VERSION }}" -m "Release v${{ steps.get_version.outputs.VERSION }}"
+          git push --force origin "v${{ steps.get_version.outputs.VERSION }}"
+
+          # Create GitHub release
+          gh release create "v${{ steps.get_version.outputs.VERSION }}" \
+            --title "Release v${{ steps.get_version.outputs.VERSION }}" \
+            --notes "See CHANGELOG.md for details" \
+            --target main
 
   publish:
     needs: release
