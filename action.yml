@@ -61,7 +61,9 @@ runs:
     REPOSITORY: ${{ inputs.repository }}
     PR_NUMBER: ${{ inputs.pull_request_number }}
   args:
+    - "--repo"
     - ${{ inputs.repository }}
+    - "--pr"
     - ${{ inputs.pull_request_number }}
     - "--provider"
     - ${{ inputs.provider }}

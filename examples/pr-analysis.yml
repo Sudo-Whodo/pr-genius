@@ -32,7 +32,7 @@ jobs:
 
       # Example: Using Ollama
       - name: PR Analysis (Ollama)
-        uses: sudo-whodo/pr-genius@main
+        uses: sudo-whodo/pr-genius@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           provider: ollama
@@ -41,7 +41,7 @@ jobs:
 
       # Example: Using AWS Bedrock
       - name: PR Analysis (Bedrock)
-        uses: sudo-whodo/pr-genius@main
+        uses: sudo-whodo/pr-genius@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           provider: bedrock
