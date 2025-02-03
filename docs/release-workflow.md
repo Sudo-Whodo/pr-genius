@@ -2,7 +2,55 @@
 
 This document outlines the process for releasing new versions of PR Genius.
 
-## Pre-release Testing
+## Automated Release Process
+
+PR Genius uses python-semantic-release and GitHub Actions to automate the release process. The workflow is configured to:
+
+1. Monitor commits for version-worthy changes using conventional commit messages
+2. Create release PRs automatically when changes warrant a new version
+3. Generate changelogs and update version numbers
+4. Create GitHub releases and Docker images
+
+### Release Types
+
+The system supports three types of releases:
+
+1. **Regular Releases** (from main branch)
+
+   - Created when changes are pushed to main
+   - Version format: v1.2.3
+   - Full production releases
+
+2. **Alpha Releases** (from feature branches)
+
+   - Created when changes are pushed to feature/\* branches
+   - Version format: v1.2.3-alpha.1
+   - Used for testing new features
+   - Created automatically from feature branches
+
+3. **Beta Releases** (from fix branches)
+   - Created when changes are pushed to fix/\* branches
+   - Version format: v1.2.3-beta.1
+   - Used for testing bug fixes
+   - Created automatically from fix branches
+
+### Commit Message Format
+
+The release process relies on conventional commit messages to determine version bumps:
+
+- `feat:` - New feature (minor version bump)
+- `fix:` or `perf:` - Bug fix or performance improvement (patch version bump)
+- `BREAKING CHANGE:` - Breaking API change (major version bump)
+
+Example commit messages:
+
+```
+feat: add new analysis feature
+fix: resolve memory leak in processor
+feat!: redesign API (includes BREAKING CHANGE)
+```
+
+## Manual Testing
 
 1. Run the test suite:
 
@@ -39,102 +87,123 @@ export PR_REVIEW_SYSTEM_CONTENT="Focus on security"
 
 ## Release Process
 
-1. Update version in pyproject.toml:
+### Automated Release Flow
 
-```toml
-[tool.poetry]
-name = "pr-genius"
-version = "1.2.3"  # New version here
-```
+1. **Triggering a Release**
 
-2. Update CHANGELOG.md with the new version and changes:
+   - Push changes to main, feature/_, or fix/_ branches
+   - Or manually trigger the Release workflow in GitHub Actions
 
-```markdown
-## [1.2.3] - YYYY-MM-DD
+2. **Version Check**
 
-### Added
+   - The system analyzes commit messages since the last release
+   - Determines if a version bump is needed and what type
+   - Creates a release PR if changes warrant a new version
 
-- New feature X
-- New feature Y
+3. **Release PR**
 
-### Changed
+   - Contains version updates and changelog
+   - For main branch: targets main
+   - For feature branches: targets the feature branch with alpha version
+   - For fix branches: targets the fix branch with beta version
 
-- Improvement to Z
-- Update to A
+4. **After PR Merge**
+   - Creates GitHub release
+   - Pushes Docker images
+   - Regular releases go to main
+   - Prereleases stay on their respective branches
 
-### Fixed
+### Manual Release (if needed)
 
-- Bug fix for B
-- Issue with C
-```
+You can still create releases manually if needed:
 
-3. Create a new release branch:
+1. Create a release branch:
 
 ```bash
 git checkout -b release/v1.2.3
 ```
 
-4. Commit changes:
+2. Update version and changelog:
 
 ```bash
-git add pyproject.toml CHANGELOG.md
+semantic-release version --no-commit
+git add .
 git commit -m "chore(release): prepare v1.2.3"
 ```
 
-5. Create a pull request and wait for CI checks
+3. Create and merge a PR to main
 
-6. After merging, tag the release:
-
-```bash
-git tag -a v1.2.3 -m "Release v1.2.3"
-git push origin v1.2.3
-```
-
-7. Create a GitHub release:
-
-- Go to Releases > Draft a new release
-- Choose the tag
-- Copy changelog entries
-- Publish release
+4. The workflow will handle the rest automatically
 
 ## Post-release
 
-1. Verify the GitHub Action works with the new release:
+1. Verify the release:
+
+   - Check GitHub releases page
+   - Verify Docker images are published
+   - Test the new version in a clean environment
+
+2. Update documentation if needed:
+
+   - README.md
+   - docs/usage-guide.md
+   - Example workflows
+
+3. Verify the GitHub Action works with the new release:
 
 ```yaml
 - uses: sudo-whodo/pr-genius@v1.2.3
 ```
 
-2. Update documentation if needed:
-
-- README.md
-- docs/usage-guide.md
-- Example workflows
-
 ## Hotfix Process
 
 For urgent fixes to a released version:
 
-1. Create a hotfix branch from the tag:
+1. Create a fix branch:
 
 ```bash
-git checkout -b hotfix/v1.2.4 v1.2.3
+git checkout -b fix/urgent-issue main
 ```
 
-2. Make the fix and update version/changelog
+2. Make your changes and commit with appropriate message:
 
-3. Follow steps 4-7 from the release process
+```bash
+git commit -m "fix: resolve critical issue"
+```
+
+3. Push the branch:
+
+```bash
+git push origin fix/urgent-issue
+```
+
+4. The workflow will automatically:
+   - Create a beta release for testing
+   - Create a release PR when ready
 
 ## Version Numbering
 
-We follow semantic versioning:
+We follow semantic versioning with prerelease support:
 
-- MAJOR version for incompatible API changes
-- MINOR version for new features in a backwards compatible manner
-- PATCH version for backwards compatible bug fixes
+### Regular Releases (main branch)
 
-Example: 1.2.3
+- Format: MAJOR.MINOR.PATCH
+- Example: 1.2.3
+  - MAJOR: Incompatible API changes
+  - MINOR: New features (backwards compatible)
+  - PATCH: Bug fixes (backwards compatible)
 
-- 1 = Major version
-- 2 = Minor version
-- 3 = Patch version
+### Prerelease Versions
+
+- Alpha (feature branches)
+
+  - Format: MAJOR.MINOR.PATCH-alpha.N
+  - Example: 1.2.3-alpha.1
+  - Used for new feature testing
+
+- Beta (fix branches)
+  - Format: MAJOR.MINOR.PATCH-beta.N
+  - Example: 1.2.3-beta.1
+  - Used for bug fix testing
+
+Version bumps are determined automatically from commit messages using conventional commit format.
